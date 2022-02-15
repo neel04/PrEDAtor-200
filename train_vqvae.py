@@ -100,9 +100,14 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = None
-    if args.sched == 'cycle':
+
+    if args.sched == "cycle":
         scheduler = CycleScheduler(
-            optimizer, args.lr, n_iter=len(loader) * args.epoch, momentum=None
+            optimizer,
+            args.lr,
+            n_iter=len(loader) * args.epoch,
+            momentum=None,
+            warmup_proportion=0.05,
         )
 
     for i in range(args.epoch):

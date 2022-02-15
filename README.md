@@ -2,4 +2,3 @@
 Unsupervised Pre-trained VQ-VAE on Comma-200k
 
 Neel Gupta
-Sigma Male
