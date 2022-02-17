@@ -21,7 +21,6 @@ from torch.nn import functional as F
 
 # Borrowed from https://github.com/deepmind/sonnet and ported it to PyTorch
 
-
 class Quantize(nn.Module):
     def __init__(self, dim, n_embed, decay=0.99, eps=1e-5):
         super().__init__()
@@ -50,10 +49,9 @@ class Quantize(nn.Module):
 
         if self.training:
             self.cluster_size.data.mul_(self.decay).add_(
-                1 - self.decay, embed_onehot.sum(0)
-            )
-            embed_sum = flatten.transpose(0, 1) @ embed_onehot
-            self.embed_avg.data.mul_(self.decay).add_(1 - self.decay, embed_sum)
+                embed_onehot_sum, alpha=1 - self.decay
+            ) #1 - self.decay, embed_onehot.sum(0)
+            self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
             n = self.cluster_size.sum()
             cluster_size = (
                 (self.cluster_size + self.eps) / (n + self.n_embed * self.eps) * n
@@ -75,7 +73,7 @@ class ResBlock(nn.Module):
         super().__init__()
 
         self.conv = nn.Sequential(
-            nn.ReLU(inplace=True),
+            nn.ReLU(), #inplace=True
             nn.Conv2d(in_channel, channel, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(channel, in_channel, 1),
