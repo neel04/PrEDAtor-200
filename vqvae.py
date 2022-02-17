@@ -21,7 +21,6 @@ from torch.nn import functional as F
 
 # Borrowed from https://github.com/deepmind/sonnet and ported it to PyTorch
 
-
 class Quantize(nn.Module):
     def __init__(self, dim, n_embed, decay=0.99, eps=1e-5):
         super().__init__()
