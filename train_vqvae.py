@@ -42,7 +42,7 @@ def train(loader, val_loader, scheduler):
     mse_n = 0
     val_mse_sum, val_mse_n = 0, 0
 
-    with wandb.init(project=args.wandb_project_name, config=args.__dict__):
+    with wandb.init(project=args.wandb_project_name, config=args.__dict__, save_code=True, name=args.run_name, magic=True):
         for epoch in range(args.epoch):
             #Starting Epoch loops
             for i, (img, label) in enumerate(loader):
@@ -146,6 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--sched', type=str)
     parser.add_argument('--num-workers', type=int)
     parser.add_argument('--wandb-project-name', type=str)
+    parser.add_argument('--run-name', type=str)
     parser.add_argument('--cpu-run', type=bool)
     parser.add_argument('training_path', type=str)
     parser.add_argument('--validation-path', type=str)
