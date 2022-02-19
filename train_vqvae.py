@@ -88,7 +88,7 @@ def train(loader, val_loader, scheduler):
 
                     utils.save_image(
                         torch.cat([sample, out], 0),
-                        f'sample/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
+                        f'/kaggle/working/samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
                         nrow=sample_size,
                         normalize=True,
                         range=(-1, 1),
