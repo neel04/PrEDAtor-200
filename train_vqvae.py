@@ -54,7 +54,7 @@ def train(loader, val_loader, scheduler):
                 recon_loss = criterion(out, img)
                 latent_loss = latent_loss.mean()
                 loss = recon_loss + latent_loss_weight * latent_loss
-                accelerator.backward()
+                accelerator.backward(loss)
 
                 if scheduler is not None:
                     scheduler.step()
