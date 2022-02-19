@@ -28,6 +28,7 @@ def train(loader, val_loader, scheduler):
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     accelerator.print(summary(model, (args.batch_size, 3, args.size, args.size)))
+    accelerator.print(model) #vanilla pytorch summary
 
     model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
     loader, val_loader = tqdm(loader), tqdm(val_loader)
