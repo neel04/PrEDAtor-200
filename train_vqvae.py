@@ -94,7 +94,7 @@ def train(loader, val_loader, scheduler):
                         range=(-1, 1),
                     )
 
-                    wandb.log({f"{epoch+1}_Samples" : [wandb.Image() for img in torch.cat( [sample, out], 0) ]})
+                    wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
 
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
