@@ -24,6 +24,7 @@ def train(epoch, loader, val_loader, optimizer, scheduler):
                   n_res_channel=args.res_channel,
                   embed_dim=args.embed_dim, n_embed=args.n_embed,
                   decay=args.decay).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     accelerate.print(summary(model, (batch_size, 3, 512, 512)))
 
@@ -181,4 +182,4 @@ if __name__ == '__main__':
 
 
     #Finally starting the training
-    notebook_launcher(train(loader, val_loader, optimizer, scheduler))
+    notebook_launcher(train(loader, val_loader, scheduler))
