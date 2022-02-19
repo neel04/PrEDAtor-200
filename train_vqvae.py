@@ -24,6 +24,7 @@ def train(loader, val_loader, scheduler):
                   n_res_channel=args.res_channel,
                   embed_dim=args.embed_dim, n_embed=args.n_embed,
                   decay=args.decay).to(device)
+    
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     accelerate.print(summary(model, (batch_size, 3, 512, 512)))
@@ -168,6 +169,13 @@ if __name__ == '__main__':
                         num_workers=args.num_workers)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers)
+
+    model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
+                  n_res_channel=args.res_channel,
+                  embed_dim=args.embed_dim, n_embed=args.n_embed,
+                  decay=args.decay).to('cpu')
+
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = None
 
