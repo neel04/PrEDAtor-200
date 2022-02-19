@@ -143,7 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-project-name', type=str)
     parser.add_argument('--cpu-run', type=bool)
     parser.add_argument('training_path', type=str)
-    parser.add_argument('validation_path', type=str)
+    parser.add_argument('--validation-path', type=str)
 
     args = parser.parse_args()
 
