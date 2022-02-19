@@ -9,7 +9,7 @@ from torchvision import datasets, transforms, utils
 from torchinfo import summary
 import wandb
 
-from tqdm import tqdm
+from tqdm import tqdm_notebook as tqdm
 
 from vqvae import VQVAE
 from scheduler import CycleScheduler
