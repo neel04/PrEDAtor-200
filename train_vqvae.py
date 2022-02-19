@@ -15,7 +15,7 @@ from vqvae import VQVAE
 from scheduler import CycleScheduler
 
 
-def train(epoch, loader, val_loader, optimizer, scheduler):
+def train(loader, val_loader, scheduler):
     accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
     device = accelerator.device
 
@@ -179,7 +179,6 @@ if __name__ == '__main__':
             momentum=None,
             warmup_proportion=0.05,
         )
-
 
     #Finally starting the training
     notebook_launcher(train(loader, val_loader, scheduler))
