@@ -24,6 +24,8 @@ def train(epoch, loader, val_loader, optimizer, scheduler):
                   n_res_channel=args.res_channel,
                   embed_dim=args.embed_dim, n_embed=args.n_embed,
                   decay=args.decay).to(device)
+    
+    accelerate.print(summary(model, (batch_size, 3, 512, 512)))
 
     model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
     loader, val_loader = tqdm(loader), tqdm(val_loader)
@@ -165,8 +167,6 @@ if __name__ == '__main__':
                         num_workers=args.num_workers)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers)
-
-    print(summary(model, (batch_size, 3, 512, 512)))
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = None
