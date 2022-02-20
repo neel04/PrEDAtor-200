@@ -36,16 +36,18 @@ def train(loader, val_loader, scheduler):
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.25
+    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 25)
+
     sample_size = 20
 
     mse_sum = 0
     mse_n = 0
-    val_mse_sum, val_mse_n = 0, 0
+    val_mse_sum, val_mse_n, beta_index = 0, 0, 0 #init beta index
 
     with wandb.init(project=args.wandb_project_name, config=args.__dict__, save_code=True, name=args.run_name, magic=True): 
-        for epoch in tqdm(range(args.epoch)):
+        for epoch in range(args.epoch):
             #Starting Epoch loops
-            for i, (img, label) in enumerate(loader):
+            for i, (img, label) in tqdm(enumerate(loader)):
                 model.zero_grad()
 
                 img = img.to(device)
@@ -53,7 +55,12 @@ def train(loader, val_loader, scheduler):
                 out, latent_loss = model(img)
                 recon_loss = criterion(out, img)
                 latent_loss = latent_loss.mean()
-                loss = recon_loss + latent_loss_weight * latent_loss
+
+                beta_index = epoch  #for consistency
+                if beta_index >= 24:
+                    beta_index = latent_loss_beta_list[-1]
+
+                loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
                 accelerator.backward(loss) #added loss to backprop
 
                 if scheduler is not None:
@@ -71,7 +78,7 @@ def train(loader, val_loader, scheduler):
                 wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
                             "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
                             "lr": lr})
-                print(f'\nlatent loss: {latent_loss.item()} >>> full: {latent_loss}')
+
                 loader.set_description(
                     (
                         f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f};'
@@ -131,6 +138,7 @@ def train(loader, val_loader, scheduler):
 
                 wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
                 accelerator.save(model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+            print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
 
 if __name__ == '__main__':
     '''
