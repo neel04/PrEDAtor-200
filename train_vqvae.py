@@ -9,7 +9,7 @@ from torchvision import datasets, transforms, utils
 from torchinfo import summary
 import wandb
 
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 
 from vqvae import VQVAE
 from scheduler import CycleScheduler
@@ -95,13 +95,13 @@ def train(loader, val_loader, scheduler):
                     for i, (img, label) in enumerate(val_loader):
                         img.to(device)
                         model.to(device)
-                        print(f'validation iteration: {i}')
+
                         with torch.no_grad():
                             out, latent_loss = model(img)
 
                         val_recon_loss = criterion(out, img)
                         val_latent_loss = latent_loss.mean()
-                        val_loss = recon_loss + latent_loss_weight * latent_loss\
+                        val_loss = recon_loss + latent_loss_weight * latent_loss
 
                         val_mse_sum += recon_loss.item() * img.shape[0]
                         val_mse_n += img.shape[0]
