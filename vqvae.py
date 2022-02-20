@@ -117,7 +117,7 @@ class Encoder(nn.Module):
         self.blocks = nn.Sequential(*blocks)
 
     def forward(self, input):
-        return nn.BatchNorm2d(in_channel, self.blocks(input))
+        return nn.BatchNorm2d(self.channel, self.blocks(input))
 
 
 class Decoder(nn.Module):
