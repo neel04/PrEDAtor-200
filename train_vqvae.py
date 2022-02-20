@@ -81,21 +81,6 @@ def train(loader, val_loader, scheduler):
                 if epoch % 2 == 0:   #i % 100 == 0
                     model.eval()
 
-                    sample = img[:sample_size]
-
-                    with torch.no_grad():
-                        out, _ = model(sample)
-
-                    utils.save_image(
-                        torch.cat([sample, out], 0),
-                        f'/kaggle/working/samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
-                        nrow=sample_size,
-                        normalize=True,
-                        range=(-1, 1),
-                    )
-
-                    wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
-
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
                         img.to(device)
@@ -124,7 +109,23 @@ def train(loader, val_loader, scheduler):
                     model.train()
 
             #Saving the model checkpoints every epoch
-            if epoch % 2 == 0:
+            if epoch % 10 == 0:
+                model.eval()
+                
+                sample = img[:sample_size]
+
+                with torch.no_grad():
+                    out, _ = model(sample)
+
+                utils.save_image(
+                    torch.cat([sample, out], 0),
+                    f'/kaggle/working/samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
+                    nrow=sample_size,
+                    normalize=True,
+                    range=(-1, 1),
+                )
+
+                wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
                 accelerator.save(model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
 
 if __name__ == '__main__':
