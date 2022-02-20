@@ -113,7 +113,7 @@ class Encoder(nn.Module):
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel))
 
-        blocks.append(nn.BatchNorm2d(self.channel, nn.ReLU(inplace=True)))
+        blocks.extend( [nn.BatchNorm2d(self.channel), nn.ReLU(inplace=True)] ) #adding BatchNorm2d
 
         self.blocks = nn.Sequential(*blocks)
 
