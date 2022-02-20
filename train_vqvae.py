@@ -9,7 +9,7 @@ from torchvision import datasets, transforms, utils
 from torchinfo import summary
 import wandb
 
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 
 from vqvae import VQVAE
 from scheduler import CycleScheduler
@@ -168,10 +168,10 @@ if __name__ == '__main__':
     val_dataset = datasets.ImageFolder(args.validation_path, transform=transform)
 
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, #True
-                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=args.batch_size)
+                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=args.batch_size // 2)
 
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
-                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=args.batch_size)
+                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=args.batch_size // 2)
 
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
                   n_res_channel=args.res_channel,
