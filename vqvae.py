@@ -113,12 +113,12 @@ class Encoder(nn.Module):
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel))
 
-        blocks.append(nn.ReLU(inplace=True))
+        blocks.append(nn.BatchNorm2d(self.channel, nn.ReLU(inplace=True)))
 
         self.blocks = nn.Sequential(*blocks)
 
     def forward(self, input):
-        return nn.BatchNorm2d(self.channel, self.blocks(input))
+        return self.blocks(input)
 
 
 class Decoder(nn.Module):
