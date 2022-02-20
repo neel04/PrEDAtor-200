@@ -47,7 +47,7 @@ def train(loader, val_loader, scheduler):
     with wandb.init(project=args.wandb_project_name, config=args.__dict__, save_code=True, name=args.run_name, magic=True): 
         for epoch in range(args.epoch):
             #Starting Epoch loops
-            for i, (img, label) in tqdm(enumerate(loader)):
+            for i, (img, label) in enumerate(loader):
                 model.zero_grad()
 
                 img = img.to(device)
@@ -78,7 +78,7 @@ def train(loader, val_loader, scheduler):
                 wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
                             "latent_loss": latent_loss.item(), "avg_mse": (mse_sum / mse_n), 
                             "lr": lr})
-                
+
                 if i % 50 == 0:
                     accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
                         "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
