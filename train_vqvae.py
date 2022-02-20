@@ -68,7 +68,7 @@ def train(loader, val_loader, scheduler):
                 wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
                             "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
                             "lr": lr})
-
+                print(f'\nlatent loss: {latent_loss.item()} >>> full: {latent_loss}')
                 loader.set_description(
                     (
                         f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f};'
