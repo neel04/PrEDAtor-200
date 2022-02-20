@@ -58,6 +58,9 @@ def train(loader, val_loader, scheduler):
 
                 if scheduler is not None:
                     scheduler.step()
+
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
+
                 optimizer.step()
 
                 mse_sum += recon_loss.item() * img.shape[0]
@@ -86,7 +89,7 @@ def train(loader, val_loader, scheduler):
                         img.to(device)
                         print(f'validation iteration: {i}')
                         with torch.no_grad():
-                            out, latent_loss = model(img)
+                            out, latent_loss = model(img).to(device)
 
                         val_recon_loss = criterion(out, img)
                         val_latent_loss = latent_loss.mean()
@@ -138,6 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--res-channel', type=int, default=32)
     parser.add_argument('--embed-dim', type=int, default=64)
     parser.add_argument('--n-embed', type=int, default=512)
+    parser.add_argument('--gradclip', type=float, default=5)
     parser.add_argument('--decay', type=float, default=0.99)
 
     parser.add_argument('--size', type=int, default=256)
