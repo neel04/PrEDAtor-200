@@ -43,7 +43,7 @@ def train(loader, val_loader, scheduler):
     val_mse_sum, val_mse_n = 0, 0
 
     with wandb.init(project=args.wandb_project_name, config=args.__dict__, save_code=True, name=args.run_name, magic=True): 
-        for epoch in range(args.epoch):
+        for epoch in tqdm(range(args.epoch)):
             #Starting Epoch loops
             for i, (img, label) in enumerate(loader):
                 model.zero_grad()
@@ -84,7 +84,7 @@ def train(loader, val_loader, scheduler):
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
                         img.to(device)
-
+                        print(f'validation iteration: {i}')
                         with torch.no_grad():
                             out, latent_loss = model(img)
 
