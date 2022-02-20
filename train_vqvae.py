@@ -76,16 +76,13 @@ def train(loader, val_loader, scheduler):
                 lr = optimizer.param_groups[0]['lr']
 
                 wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
-                            "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
+                            "latent_loss": latent_loss.item(), "avg_mse": (mse_sum / mse_n), 
                             "lr": lr})
-
-                loader.set_description(
-                    (
-                        f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f};'
-                        f'latent: {latent_loss.item():.3f}; avg mse: {mse_sum / mse_n:.5f};'
-                        f'lr: {lr:.5f}'
-                    )
-                )
+                
+                if i % 50 == 0:
+                    accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
+                        "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
+                        "lr": lr})
 
                 #Performing Validation and loggign out images
                 if epoch % 2 == 0:   #i % 100 == 0
@@ -101,7 +98,7 @@ def train(loader, val_loader, scheduler):
 
                         val_recon_loss = criterion(out, img)
                         val_latent_loss = latent_loss.mean()
-                        val_loss = recon_loss + latent_loss_weight * latent_loss
+                        val_loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
 
                         val_mse_sum += recon_loss.item() * img.shape[0]
                         val_mse_n += img.shape[0]
@@ -110,12 +107,9 @@ def train(loader, val_loader, scheduler):
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
                             "lr": lr})
 
-                    loader.set_description(
-                    (
-                        f'epoch: {epoch + 1}; val_mse: {val_recon_loss.item():.5f};'
-                        f'val_latent: {val_latent_loss.item():.3f}; val_avg_mse: {val_mse_sum / val_mse_n:.5f};'
-                        f'lr: {lr:.5f}'
-                    ))
+                    accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
+                            "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
+                            "lr": lr})
 
                     model.train()
 
