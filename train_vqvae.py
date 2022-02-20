@@ -87,9 +87,10 @@ def train(loader, val_loader, scheduler):
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
                         img.to(device)
+                        model.to(device)
                         print(f'validation iteration: {i}')
                         with torch.no_grad():
-                            out, latent_loss = model(img).to(device)
+                            out, latent_loss = model(img)
 
                         val_recon_loss = criterion(out, img)
                         val_latent_loss = latent_loss.mean()
