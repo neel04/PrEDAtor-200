@@ -36,7 +36,7 @@ def train(loader, val_loader, scheduler):
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.25
-    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 25)
+    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 20)
 
     sample_size = 20
 
@@ -48,6 +48,8 @@ def train(loader, val_loader, scheduler):
         for epoch in range(args.epoch):
             #Starting Epoch loops
             for i, (img, label) in enumerate(loader):
+                model.train()
+
                 model.zero_grad()
 
                 img = img.to(device)
@@ -61,6 +63,9 @@ def train(loader, val_loader, scheduler):
                     beta_index = latent_loss_beta_list[-1]
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
+
+                optimizer.zero_grad()
+
                 accelerator.backward(loss) #added loss to backprop
 
                 if scheduler is not None:
@@ -79,7 +84,7 @@ def train(loader, val_loader, scheduler):
                             "latent_loss": latent_loss.item(), "avg_mse": (mse_sum / mse_n), 
                             "lr": lr})
 
-                if i % 50 == 0:
+                if i % 25 == 0:
                     accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
                         "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
                         "lr": lr})
