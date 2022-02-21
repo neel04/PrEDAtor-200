@@ -50,8 +50,6 @@ def train(loader, val_loader, scheduler):
             for i, (img, label) in enumerate(loader):
                 model.train()
 
-                model.zero_grad()
-
                 img = img.to(device)
 
                 out, latent_loss = model(img)
@@ -64,7 +62,7 @@ def train(loader, val_loader, scheduler):
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
 
-                optimizer.zero_grad()
+                model.zero_grad(set_to_none=True)
 
                 accelerator.backward(loss) #added loss to backprop
 
