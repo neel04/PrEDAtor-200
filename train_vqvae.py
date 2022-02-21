@@ -16,7 +16,7 @@ from scheduler import CycleScheduler
 
 
 def train(loader, val_loader, scheduler):
-    accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
+    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
 
     #initializing the model
@@ -134,6 +134,8 @@ def train(loader, val_loader, scheduler):
 
                 wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
                 accelerator.save(model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+                model.train()
+
             print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
 
 if __name__ == '__main__':
