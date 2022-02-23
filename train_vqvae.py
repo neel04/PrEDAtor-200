@@ -16,9 +16,10 @@ from scheduler import CycleScheduler
 
 
 def train(loader, val_loader, scheduler):
-    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
+    accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
     device = accelerator.device
-
+    print(f'\n\nUSING DEVICE: {device}\t\tARGS @ CPU_RUN: {args.cpu_run}')
+    
     #initializing the model
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
                   n_res_channel=args.res_channel,
@@ -52,7 +53,10 @@ def train(loader, val_loader, scheduler):
                 img = img.to(device)
 
                 out, latent_loss = model(img)
-                recon_loss = criterion(out, img)
+
+                with accelerator.autocast():
+                    recon_loss = criterion(out, img)
+
                 latent_loss = latent_loss.mean()
 
                 beta_index = epoch  #for consistency
@@ -68,7 +72,7 @@ def train(loader, val_loader, scheduler):
                 if scheduler is not None:
                     scheduler.step()
 
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
+                accelerator.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
                 optimizer.step()
 
@@ -107,7 +111,7 @@ def train(loader, val_loader, scheduler):
 
                     wandb.log({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
-                            "lr": lr})
+                            "lr": lr}, end='\n')
 
                     accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
@@ -133,7 +137,10 @@ def train(loader, val_loader, scheduler):
                 )
 
                 wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
-                accelerator.save(model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+
+                accelerator.wait_for_everyone()
+                unwrapped_model = accelerator.unwrap_model(model)
+                accelerator.save(unwrapped_model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
                 model.train()
 
             print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
