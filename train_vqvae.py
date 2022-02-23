@@ -106,8 +106,8 @@ def train(loader, val_loader):
 
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
-                        img.to(device)
-                        model.to(device)
+                        img = img.to(device)
+                        mode = model.to(device)
 
                         with torch.no_grad():
                             out, latent_loss = model(img)
