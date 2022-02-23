@@ -16,7 +16,7 @@ from scheduler import CycleScheduler
 
 
 def train(loader, val_loader):
-    accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
+    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
 
     #initializing the model
