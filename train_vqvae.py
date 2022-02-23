@@ -15,11 +15,10 @@ from vqvae import VQVAE
 from scheduler import CycleScheduler
 
 
-def train(loader, val_loader, scheduler):
+def train(loader, val_loader):
     accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
     device = accelerator.device
-    print(f'\n\nUSING DEVICE: {device}\t\tARGS @ CPU_RUN: {args.cpu_run}')
-    
+
     #initializing the model
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
                   n_res_channel=args.res_channel,
@@ -27,6 +26,17 @@ def train(loader, val_loader, scheduler):
                   decay=args.decay).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    scheduler = None
+
+    if args.sched == "cycle":
+        scheduler = CycleScheduler(
+            optimizer,
+            args.lr,
+            n_iter=len(loader) * args.epoch,
+            momentum=None,
+            warmup_proportion=0.05,
+        )
 
     accelerator.print(summary(model, (args.batch_size, 3, args.size, args.size)))
     accelerator.print(model) #vanilla pytorch summary
@@ -192,23 +202,5 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers, pin_memory=True, prefetch_factor=32)
 
-    model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
-                  n_res_channel=args.res_channel,
-                  embed_dim=args.embed_dim, n_embed=args.n_embed,
-                  decay=args.decay).to('cpu')
-
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-
-    scheduler = None
-
-    if args.sched == "cycle":
-        scheduler = CycleScheduler(
-            optimizer,
-            args.lr,
-            n_iter=len(loader) * args.epoch,
-            momentum=None,
-            warmup_proportion=0.05,
-        )
-
     #Finally starting the training
-    notebook_launcher(train(loader, val_loader, scheduler))
+    notebook_launcher(train(loader, val_loader))
