@@ -121,7 +121,7 @@ def train(loader, val_loader):
 
                     wandb.log({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
-                            "lr": lr}, end='\n')
+                            "lr": lr})
 
                     accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
