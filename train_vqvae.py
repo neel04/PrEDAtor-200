@@ -60,6 +60,8 @@ def train(loader, val_loader):
             #Starting Epoch loops
             model.train()
             for i, (img, label) in enumerate(loader):
+                model.zero_grad(set_to_none=True)
+
                 img = img.to(device)
 
                 out, latent_loss = model(img)
@@ -74,8 +76,6 @@ def train(loader, val_loader):
                     beta_index = latent_loss_beta_list[-1]
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
-
-                model.zero_grad(set_to_none=True)
 
                 accelerator.backward(loss) #added loss to backprop
 
