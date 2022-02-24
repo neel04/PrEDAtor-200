@@ -171,7 +171,7 @@ if __name__ == '__main__':
     val_dataset = datasets.ImageFolder(args.validation_path, transform=transform)
 
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, #True
-                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=2)
+                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=2, persistent_workers=True)
 
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers, pin_memory=True, prefetch_factor=2)
