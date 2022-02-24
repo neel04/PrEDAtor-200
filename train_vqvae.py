@@ -124,7 +124,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
 def exec(epochs, loader, val_loader, model, optimizer, scheduler, device):
   for i in range(epochs):
     train(i, loader, val_loader, model, optimizer, scheduler, device)
-    torch.save(model.state_dict(), f'checkpoint/vqvae_{str(i + 1).zfill(3)}.pt')
+    torch.save(model.state_dict(), f'./checkpoint/vqvae_{str(i + 1).zfill(3)}.pt')
 
 if __name__ == '__main__':
     '''
