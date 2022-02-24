@@ -40,8 +40,9 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
               img = img.to(device)
 
               out, latent_loss = model(img)
-
-              recon_loss = criterion(out, img)
+              
+              with accelerator.autocast():
+                recon_loss = criterion(out, img)
 
               latent_loss = latent_loss.mean()
 
