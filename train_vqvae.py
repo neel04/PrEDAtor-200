@@ -17,7 +17,7 @@ from scheduler import CycleScheduler
 
 def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
     model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
-    
+
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
@@ -70,7 +70,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
                          "lr": lr})
 
               if i % 25 == 0:
-                  print({"epoch": epoch+1, "mse": recon_loss.item(),
+                  accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
                       "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
                       "lr": lr})
 
@@ -91,7 +91,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
                       val_mse_sum += recon_loss.item() * img.shape[0]
                       val_mse_n += img.shape[0]
 
-                  print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
+                  accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                           "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
                           "lr": lr})
 
@@ -121,7 +121,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
               accelerator.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
               model.train()
 
-          print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
+          accelerator.print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
 
 def exec(epochs, loader, val_loader, model, optimizer, scheduler, device):
   for i in range(epochs):
