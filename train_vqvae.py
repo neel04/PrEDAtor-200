@@ -16,6 +16,8 @@ from scheduler import CycleScheduler
 
 
 def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
+    model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
+    
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
@@ -116,7 +118,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
 
               accelerator.wait_for_everyone()
               unwrapped_model = accelerator.unwrap_model(model)
-              accelerator.save(unwrapped_model.state_dict(), f'checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+              accelerator.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
               model.train()
 
           print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
