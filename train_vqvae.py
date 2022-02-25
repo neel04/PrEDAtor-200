@@ -74,8 +74,8 @@ def train(loader, val_loader):
 
                 out, latent_loss = model(img)
 
-                #with accelerator.autocast():
-                recon_loss = criterion(out, img)
+                with accelerator.autocast():
+                    recon_loss = criterion(out, img)
 
                 latent_loss = latent_loss.mean()
 
