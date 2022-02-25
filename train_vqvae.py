@@ -24,7 +24,6 @@ from scheduler import CycleScheduler
 
 def train(loader, val_loader):
     accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
-
     device = accelerator.device
     print(accelerator.state)
 
@@ -56,8 +55,9 @@ def train(loader, val_loader):
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.25
-
     latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 20)
+
+    sample_size = 20
 
     mse_sum = 0
     mse_n = 0
@@ -110,9 +110,8 @@ def train(loader, val_loader):
 
                 #Performing Validation and loggign out images
                 if epoch > 0 and epoch % 2 == 0:   #i % 100 == 0
-                    model = model.to(device)
                     model.eval()
-                    
+                    model = model.to(device)
                     #--------------VALIDATION------------------
                     for i, (img, label) in enumerate(val_loader):
                         img = img.to(device)
@@ -184,7 +183,6 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-project-name', type=str)
     parser.add_argument('--run-name', type=str)
     parser.add_argument('--cpu-run', type=bool, default=False)
-
     parser.add_argument('training_path', type=str)
     parser.add_argument('--validation-path', type=str)
 
