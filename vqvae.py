@@ -92,7 +92,8 @@ class ResBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, in_channel, channel, n_res_block, n_res_channel, stride):
         super().__init__()
-
+        self.in_channel = in_channel
+        self.channel = channel
         if stride == 4:
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1),
@@ -112,7 +113,7 @@ class Encoder(nn.Module):
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel))
 
-        blocks.append(nn.ReLU(inplace=True))
+        blocks.extend( [nn.BatchNorm2d(self.channel), nn.ReLU(inplace=True)] ) #adding BatchNorm2d
 
         self.blocks = nn.Sequential(*blocks)
 
