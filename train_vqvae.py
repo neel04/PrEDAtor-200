@@ -16,8 +16,7 @@ from scheduler import CycleScheduler
 
 
 def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
-    model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
-
+    
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
@@ -168,6 +167,9 @@ def exec(epochs):
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary 
+
+    #Preparing everyhthing for training
+    model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
 
     for i in range(epochs):
         train(i, loader, val_loader, model, optimizer, scheduler, device)
