@@ -98,7 +98,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
                   model.train()
 
           #Saving the model checkpoints every epoch
-          if epoch % 10 == 0:
+          if epoch % 1 == 0:
               model.eval()
 
               sample = img[:sample_size]
@@ -121,45 +121,14 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
               accelerator.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
               model.train()
 
-          accelerator.print(f'\n---EPOCH {epoch} CCOMPLETED---\n')
+          accelerator.print(f'\n\n---EPOCH {epoch} CCOMPLETED---\n\n')
 
 def exec(epochs, loader, val_loader, model, optimizer, scheduler, device):
-  for i in range(epochs):
-    train(i, loader, val_loader, model, optimizer, scheduler, device)
-    torch.save(model.state_dict(), f'./checkpoint/vqvae_{str(i + 1).zfill(3)}.pt')
-
-if __name__ == '__main__':
-    '''
-    These are the default values:-
-    n_res_block=2, n_res_channel=32, embed_dim=64, n_embed=512, decay=0.99
-    '''
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--res-blocks', type=int, default=4)
-    parser.add_argument('--res-channel', type=int, default=32)
-    parser.add_argument('--embed-dim', type=int, default=64)
-    parser.add_argument('--n-embed', type=int, default=512)
-    parser.add_argument('--gradclip', type=float, default=5)
-    parser.add_argument('--decay', type=float, default=0.99)
-
-    parser.add_argument('--size', type=int, default=256)
-    parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--epoch', type=int, default=200)
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--sched', type=str)
-    parser.add_argument('--num-workers', type=int)
-    parser.add_argument('--wandb-project-name', type=str)
-    parser.add_argument('--run-name', type=str)
-    parser.add_argument('--cpu-run', type=bool, default=False)
-    parser.add_argument('training_path', type=str)
-    parser.add_argument('--validation-path', type=str)
-
-    args = parser.parse_args()
-
-    print(args)
-
     accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
+
     print(f'\n\nAccelerator State: {accelerator.state}')
+
     transform = transforms.Compose(
         [
             transforms.Resize(args.size),
@@ -199,6 +168,39 @@ if __name__ == '__main__':
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary 
+
+    for i in range(epochs):
+        train(i, loader, val_loader, model, optimizer, scheduler, device)
+        #torch.save(model.state_dict(), f'./checkpoint/vqvae_{str(i + 1).zfill(3)}.pt')
+
+if __name__ == '__main__':
+    '''
+    These are the default values:-
+    n_res_block=2, n_res_channel=32, embed_dim=64, n_embed=512, decay=0.99
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--res-blocks', type=int, default=4)
+    parser.add_argument('--res-channel', type=int, default=32)
+    parser.add_argument('--embed-dim', type=int, default=64)
+    parser.add_argument('--n-embed', type=int, default=512)
+    parser.add_argument('--gradclip', type=float, default=5)
+    parser.add_argument('--decay', type=float, default=0.99)
+
+    parser.add_argument('--size', type=int, default=256)
+    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--epoch', type=int, default=200)
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--sched', type=str)
+    parser.add_argument('--num-workers', type=int)
+    parser.add_argument('--wandb-project-name', type=str)
+    parser.add_argument('--run-name', type=str)
+    parser.add_argument('--cpu-run', type=bool, default=False)
+    parser.add_argument('training_path', type=str)
+    parser.add_argument('--validation-path', type=str)
+
+    args = parser.parse_args()
+
+    print(args)
 
     #Finally starting the training
     notebook_launcher(exec(args.epoch, loader, val_loader, model, optimizer, scheduler, device))
