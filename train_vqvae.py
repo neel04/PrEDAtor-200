@@ -123,7 +123,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
 
           accelerator.print(f'\n\n---EPOCH {epoch} CCOMPLETED---\n\n')
 
-def exec(epochs, loader, val_loader, model, optimizer, scheduler, device):
+def exec(epochs):
     accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
 
@@ -203,4 +203,4 @@ if __name__ == '__main__':
     print(args)
 
     #Finally starting the training
-    notebook_launcher(exec(args.epoch, loader, val_loader, model, optimizer, scheduler, device))
+    notebook_launcher(exec(args.epoch))
