@@ -5,7 +5,6 @@ Credits for most of OG code: Rosinality (vq-vae-2)
 #####################################################################################
 '''
 
-
 import argparse
 from accelerate import Accelerator, notebook_launcher
 
@@ -26,6 +25,7 @@ from scheduler import CycleScheduler
 def train(loader, val_loader):
     accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
+    print(accelerator.state)
 
     #initializing the model
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
