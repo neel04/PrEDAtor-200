@@ -41,8 +41,7 @@ def train(epoch, loader, val_loader, model, optimizer, scheduler, device):
 
               out, latent_loss = model(img)
               
-              with accelerator.autocast():
-                recon_loss = criterion(out, img)
+              recon_loss = criterion(out, img)
 
               latent_loss = latent_loss.mean()
 
@@ -158,7 +157,7 @@ if __name__ == '__main__':
 
     print(args)
 
-    accelerator = Accelerator(fp16=True, cpu=args.cpu_run)
+    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
     print(f'\n\nAccelerator State: {accelerator.state}')
     transform = transforms.Compose(
