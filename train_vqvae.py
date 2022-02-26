@@ -11,6 +11,7 @@ from accelerate import Accelerator, notebook_launcher
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+from torch.cuda.amp import GradScaler, autocast
 
 from torchvision import datasets, transforms, utils
 from torchinfo import summary
@@ -26,6 +27,8 @@ def train(loader, val_loader):
     accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
     device = accelerator.device
     print(accelerator.state)
+
+    scaler = GradScaler() #init grad scaler
 
     #initializing the model
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
@@ -72,7 +75,7 @@ def train(loader, val_loader):
 
                 img = img.to(device)
 
-                with accelerator.autocast():
+                with autocast():
                     out, latent_loss = model(img)
                     recon_loss = criterion(out, img)
 
@@ -84,14 +87,16 @@ def train(loader, val_loader):
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
 
-                accelerator.backward(loss) #added loss to backprop
+                accelerator.backward(scaler.scale(loss)) #added loss to backprop
 
                 if scheduler is not None:
                     scheduler.step()
 
-                accelerator.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
+                #torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
-                optimizer.step()
+                scaler.step(optimizer.step())
+
+                scaler.update() #finally updating scaler
 
                 mse_sum += recon_loss.item() * img.shape[0]
                 mse_n += img.shape[0]
