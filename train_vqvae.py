@@ -23,7 +23,8 @@ from scheduler import CycleScheduler
 
 
 def train(loader, val_loader):
-    device = 'cuda'
+    device = torch.device("cpu" if args.cpu_run else "cuda")
+    print(f'\nUsing Device: {devce}')
 
     scaler = GradScaler() #init grad scaler
 
