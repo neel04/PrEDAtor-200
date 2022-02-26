@@ -155,7 +155,7 @@ def train(loader, val_loader):
 
                 wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
 
-                torch.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+                torch.save(state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
                 model.train()
 
             print(f'\n\n---EPOCH {epoch} CCOMPLETED---\n\n')
