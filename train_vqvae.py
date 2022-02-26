@@ -6,7 +6,6 @@ Credits for most of OG code: Rosinality (vq-vae-2)
 '''
 
 import argparse
-from accelerate import Accelerator, notebook_launcher
 
 import torch
 from torch import nn, optim
@@ -24,9 +23,7 @@ from scheduler import CycleScheduler
 
 
 def train(loader, val_loader):
-    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
-    device = accelerator.device
-    print(accelerator.state)
+    device = 'cuda'
 
     scaler = GradScaler() #init grad scaler
 
@@ -49,10 +46,9 @@ def train(loader, val_loader):
             warmup_proportion=0.05,
         )
 
-    accelerator.print(summary(model, (args.batch_size, 3, args.size, args.size)))
-    accelerator.print(model) #vanilla pytorch summary
+    print(summary(model, (args.batch_size, 3, args.size, args.size)))
+    print(model) #vanilla pytorch summary
 
-    model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
@@ -87,14 +83,14 @@ def train(loader, val_loader):
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
 
-                accelerator.backward(scaler.scale(loss)) #added loss to backprop
+                scaler.scale(loss).backward() #added loss to backprop
 
                 if scheduler is not None:
                     scheduler.step()
 
                 #torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
-                scaler.step(optimizer.step())
+                scaler.step(optimizer)
 
                 scaler.update() #finally updating scaler
 
@@ -108,7 +104,7 @@ def train(loader, val_loader):
                             "lr": lr})
 
                 if i % 25 == 0:
-                    accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
+                    print({"epoch": epoch+1, "mse": recon_loss.item(),
                         "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
                         "lr": lr})
 
@@ -133,7 +129,7 @@ def train(loader, val_loader):
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
                             "lr": lr})
 
-                    accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
+                    print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
                             "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
                             "lr": lr})
 
@@ -158,9 +154,7 @@ def train(loader, val_loader):
 
                 wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
 
-                accelerator.wait_for_everyone()
-                unwrapped_model = accelerator.unwrap_model(model)
-                accelerator.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+                torch.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
                 model.train()
 
             print(f'\n\n---EPOCH {epoch} CCOMPLETED---\n\n')
@@ -213,4 +207,4 @@ if __name__ == '__main__':
                         num_workers=args.num_workers, pin_memory=True, prefetch_factor=2)
 
     #Finally starting the training
-    notebook_launcher(train(loader, val_loader))
+    train(loader, val_loader)
