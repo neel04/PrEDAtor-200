@@ -110,7 +110,7 @@ def train(loader, val_loader):
                         "lr": lr})
 
                 #Performing Validation and loggign out images
-                if epoch > 0 and epoch % 5 == 0:   #i % 100 == 0
+                if epoch > 0 and epoch % 15 == 0:   #i % 100 == 0
                     model.eval()
                     model = model.to(device)
                     #--------------VALIDATION------------------
