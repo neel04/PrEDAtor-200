@@ -48,6 +48,9 @@ class Quantize(nn.Module):
         quantize = self.embed_code(embed_ind)
 
         if self.training:
+            embed_onehot_sum = embed_onehot.sum(0)
+            embed_sum = flatten.transpose(0, 1) @ embed_onehot
+
             self.cluster_size.data.mul_(self.decay).add_(
                 embed_onehot_sum, alpha=1 - self.decay
             ) #1 - self.decay, embed_onehot.sum(0)
@@ -89,7 +92,8 @@ class ResBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, in_channel, channel, n_res_block, n_res_channel, stride):
         super().__init__()
-
+        self.in_channel = in_channel
+        self.channel = channel
         if stride == 4:
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1),
@@ -109,7 +113,7 @@ class Encoder(nn.Module):
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel))
 
-        blocks.append(nn.ReLU(inplace=True))
+        blocks.extend( [nn.BatchNorm2d(self.channel), nn.ReLU(inplace=True)] ) #adding BatchNorm2d
 
         self.blocks = nn.Sequential(*blocks)
 

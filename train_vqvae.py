@@ -1,4 +1,13 @@
+'''
+#####################################################################################
+Author: neel04
+Credits for most of OG code: Rosinality (vq-vae-2)
+#####################################################################################
+'''
+
+
 import argparse
+from accelerate import Accelerator, notebook_launcher
 
 import torch
 from torch import nn, optim
@@ -8,102 +17,150 @@ from torchvision import datasets, transforms, utils
 from torchinfo import summary
 import wandb
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from vqvae import VQVAE
 from scheduler import CycleScheduler
 
 
-def train(epoch, loader, val_Loader, model, optimizer, scheduler, device):
-    loader = tqdm(loader)
+def train(loader, val_loader):
+    accelerator = Accelerator(fp16=False, cpu=args.cpu_run)
+
+    device = accelerator.device
+
+    #initializing the model
+    model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
+                  n_res_channel=args.res_channel,
+                  embed_dim=args.embed_dim, n_embed=args.n_embed,
+                  decay=args.decay).to(device)
+
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    scheduler = None
+
+    if args.sched == "cycle":
+        scheduler = CycleScheduler(
+            optimizer,
+            args.lr,
+            n_iter=len(loader) * args.epoch,
+            momentum=None,
+            warmup_proportion=0.05,
+        )
+
+    accelerator.print(summary(model, (args.batch_size, 3, args.size, args.size)))
+    accelerator.print(model) #vanilla pytorch summary
+
+    model, optimizer, loader, val_loader = accelerator.prepare(model, optimizer, loader, val_loader)
+    loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.25
-    sample_size = 25
+
+    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 20)
 
     mse_sum = 0
     mse_n = 0
-    val_mse_sum, val_mse_n = 0, 0
+    val_mse_sum, val_mse_n, beta_index = 0, 0, 0 #init beta index
 
-    for i, (img, label) in enumerate(loader):
-        model.zero_grad()
+    with wandb.init(project=args.wandb_project_name, config=args.__dict__, save_code=True, name=args.run_name, magic=True): 
+        for epoch in range(args.epoch):
+            #Starting Epoch loops
+            model.train()
+            for i, (img, label) in enumerate(loader):
+                model.zero_grad(set_to_none=True)
 
-        img = img.to(device)
+                img = img.to(device)
 
-        out, latent_loss = model(img)
-        recon_loss = criterion(out, img)
-        latent_loss = latent_loss.mean()
-        loss = recon_loss + latent_loss_weight * latent_loss
-        loss.backward()
+                out, latent_loss = model(img)
 
-        if scheduler is not None:
-            scheduler.step()
-        optimizer.step()
+                #with accelerator.autocast():
+                recon_loss = criterion(out, img)
 
-        mse_sum += recon_loss.item() * img.shape[0]
-        mse_n += img.shape[0]
+                latent_loss = latent_loss.mean()
 
-        lr = optimizer.param_groups[0]['lr']
+                beta_index = epoch  #for consistency
+                if beta_index >= 24:
+                    beta_index = latent_loss_beta_list[-1]
 
-        wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
-                    "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
-                    "lr": lr})
+                loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
 
-        loader.set_description(
-            (
-                f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f};'
-                f'latent: {latent_loss.item():.3f}; avg mse: {mse_sum / mse_n:.5f};'
-                f'lr: {lr:.5f}'
-            )
-        )
+                accelerator.backward(loss) #added loss to backprop
 
-        #Performing Validation and loggign out images
-        if epoch % 2 == 0:   #i % 100 == 0
-            model.eval()
+                if scheduler is not None:
+                    scheduler.step()
 
-            sample = img[:sample_size]
+                accelerator.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
-            with torch.no_grad():
-                out, _ = model(sample)
+                optimizer.step()
 
-            utils.save_image(
-                torch.cat([sample, out], 0),
-                f'sample/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
-                nrow=sample_size,
-                normalize=True,
-                range=(-1, 1),
-            )
+                mse_sum += recon_loss.item() * img.shape[0]
+                mse_n += img.shape[0]
 
-            wandb.log({f"{epoch+1}_Samples" : [wandb.Image() for img in torch.cat( [sample, out], 0) ]})
+                lr = optimizer.param_groups[0]['lr']
 
-            #--------------VALIDATION------------------
-            for i, (img, label) in enumerate(val_loader):
-                img.to(device)
+                wandb.log({"epoch": epoch+1, "mse": recon_loss.item(), 
+                            "latent_loss": latent_loss.item(), "avg_mse": (mse_sum / mse_n), 
+                            "lr": lr})
+
+                if i % 25 == 0:
+                    accelerator.print({"epoch": epoch+1, "mse": recon_loss.item(),
+                        "latent_loss": latent_loss.item(), "avg_mse": (mse_sum/ mse_n), 
+                        "lr": lr})
+
+                #Performing Validation and loggign out images
+                if epoch > 0 and epoch % 2 == 0:   #i % 100 == 0
+                    model = model.to(device)
+                    model.eval()
+                    
+                    #--------------VALIDATION------------------
+                    for i, (img, label) in enumerate(val_loader):
+                        img = img.to(device)
+                        
+                        with torch.no_grad():
+                            out, latent_loss = model(img)
+
+                        val_recon_loss = criterion(out, img)
+                        val_latent_loss = latent_loss.mean()
+
+                        val_mse_sum += recon_loss.item() * img.shape[0]
+                        val_mse_n += img.shape[0]
+
+                    wandb.log({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
+                            "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
+                            "lr": lr})
+
+                    accelerator.print({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
+                            "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
+                            "lr": lr})
+
+                    model.train()
+
+            #Saving the model checkpoints every epoch
+            if epoch % 1 == 0:
+                model.eval()
+                
+                sample = img[:sample_size]
 
                 with torch.no_grad():
-                    out, latent_loss = model(img)
+                    out, _ = model(sample)
 
-                val_recon_loss = criterion(out, img)
-                val_latent_loss = latent_loss.mean()
-                val_loss = recon_loss + latent_loss_weight * latent_loss\
+                utils.save_image(
+                    torch.cat([sample, out], 0),
+                    f'/kaggle/working/samples/{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png',
+                    nrow=sample_size,
+                    normalize=True,
+                    range=(-1, 1),
+                )
 
-                val_mse_sum += recon_loss.item() * img.shape[0]
-                val_mse_n += img.shape[0]
+                wandb.log({f"{epoch+1}_Samples" : [wandb.Image(img) for img in torch.cat( [sample, out], 0) ]})
 
-            wandb.log({"epoch": epoch+1, "val_mse": val_recon_loss.item(), 
-                    "val_latent_loss": val_latent_loss.item(), "val_avg_mse": (val_mse_sum/ val_mse_n), 
-                    "lr": lr})
+                accelerator.wait_for_everyone()
+                unwrapped_model = accelerator.unwrap_model(model)
+                accelerator.save(unwrapped_model.state_dict(), f'./checkpoint/vqvae_{str(epoch + 1).zfill(3)}.pt')
+                model.train()
 
-            loader.set_description(
-            (
-                f'epoch: {epoch + 1}; val_mse: {val_recon_loss.item():.5f};'
-                f'val_latent: {val_latent_loss.item():.3f}; val_avg_mse: {val_mse_sum / val_mse_n:.5f};'
-                f'lr: {lr:.5f}'
-            ))
-
-            model.train()
-
+            print(f'\n\n---EPOCH {epoch} CCOMPLETED---\n\n')
 
 if __name__ == '__main__':
     '''
@@ -115,6 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('--res-channel', type=int, default=32)
     parser.add_argument('--embed-dim', type=int, default=64)
     parser.add_argument('--n-embed', type=int, default=512)
+    parser.add_argument('--gradclip', type=float, default=5)
     parser.add_argument('--decay', type=float, default=0.99)
 
     parser.add_argument('--size', type=int, default=256)
@@ -123,14 +181,16 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--sched', type=str)
     parser.add_argument('--num-workers', type=int)
+    parser.add_argument('--wandb-project-name', type=str)
+    parser.add_argument('--run-name', type=str)
+    parser.add_argument('--cpu-run', type=bool, default=False)
+
     parser.add_argument('training_path', type=str)
-    parser.add_argument('validation_path', type=str)
+    parser.add_argument('--validation-path', type=str)
 
     args = parser.parse_args()
 
     print(args)
-
-    device = 'cuda'
 
     transform = transforms.Compose(
         [
@@ -145,19 +205,10 @@ if __name__ == '__main__':
     val_dataset = datasets.ImageFolder(args.validation_path, transform=transform)
 
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, #True
-                        num_workers=args.num_workers)
+                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=2)
+
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
-                        num_workers=args.num_workers)
-
-    model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
-                  n_res_channel=args.res_channel,
-                  embed_dim=args.embed_dim, n_embed=args.n_embed,
-                  decay=args.decay).to(device)
-
-    print(summary(model, (batch_size, 3, 512, 512)))
-
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = None
+                        num_workers=args.num_workers, pin_memory=True, prefetch_factor=2)
 
     if args.sched == "cycle":
         scheduler = CycleScheduler(
