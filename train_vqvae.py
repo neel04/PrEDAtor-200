@@ -170,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--res-channel', type=int, default=32)
     parser.add_argument('--embed-dim', type=int, default=64)
     parser.add_argument('--n-embed', type=int, default=512)
+    parser.add_argument('--dilation', type=int, default=1, help='makes an Arithmetic Sequence with common diff of provided value')
     parser.add_argument('--gradclip', type=float, default=5)
     parser.add_argument('--decay', type=float, default=0.99)
 
