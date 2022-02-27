@@ -119,7 +119,7 @@ class Encoder(nn.Module):
             ]
 
         for i in range(n_res_block):
-            blocks.append(ResBlock(channel, n_res_channel, i))
+            blocks.append(ResBlock(channel, n_res_channel, i, args=args))
 
         blocks.extend( [nn.BatchNorm2d(self.channel), nn.ReLU(inplace=True)] ) #adding BatchNorm2d
 
@@ -138,7 +138,7 @@ class Decoder(nn.Module):
         blocks = [nn.Conv2d(in_channel, channel, 3, padding=1)]
 
         for i in range(n_res_block):
-            blocks.append(ResBlock(channel, n_res_channel, i))
+            blocks.append(ResBlock(channel, n_res_channel, i, args=args))
 
         blocks.append(nn.ReLU(inplace=True))
 
