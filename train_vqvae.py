@@ -32,7 +32,7 @@ def train(loader, val_loader):
     model = VQVAE(in_channel=3, channel=128, n_res_block=args.res_blocks,
                   n_res_channel=args.res_channel,
                   embed_dim=args.embed_dim, n_embed=args.n_embed,
-                  decay=args.decay).to(device)
+                  decay=args.decay, args=args).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -110,7 +110,7 @@ def train(loader, val_loader):
                         "lr": lr})
 
                 #Performing Validation and loggign out images
-                if epoch > 0 and epoch % 2 == 0:   #i % 100 == 0
+                if epoch > 0 and epoch % 5 == 0:   #i % 100 == 0
                     model.eval()
                     model = model.to(device)
                     #--------------VALIDATION------------------
@@ -170,7 +170,8 @@ if __name__ == '__main__':
     parser.add_argument('--res-channel', type=int, default=32)
     parser.add_argument('--embed-dim', type=int, default=64)
     parser.add_argument('--n-embed', type=int, default=512)
-    parser.add_argument('--dilation', type=int, default=1, help='makes an Arithmetic Sequence with common diff of provided value')
+    parser.add_argument('--dilation-rate', type=int, default=0, 
+                        help='makes an Arithmetic Sequence with common diff of provided value| 0 to disable')
     parser.add_argument('--gradclip', type=float, default=5)
     parser.add_argument('--decay', type=float, default=0.99)
 
