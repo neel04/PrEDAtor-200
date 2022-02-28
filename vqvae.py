@@ -106,16 +106,16 @@ class Encoder(nn.Module):
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1, dilation=1 + args.dilation_rate),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel // 2, channel, 4, stride=2, padding=1, dilation=2 + args.dilation_rate),
+                nn.Conv2d(channel // 2, channel, 4, stride=2, padding=1, dilation=1 + args.dilation_rate*2),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel, channel, 3, padding=1, dilation=3 + args.dilation_rate),
+                nn.Conv2d(channel, channel, 3, padding=1, dilation=1 + args.dilation_rate*3),
             ]
 
         elif stride == 2:
             blocks = [
                 nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1, dilation=1 + args.dilation_rate),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel // 2, channel, 3, padding=1, dilation=2 + args.dilation_rate),
+                nn.Conv2d(channel // 2, channel, 3, padding=1, dilation=1 + args.dilation_rate*2),
             ]
 
         for i in range(n_res_block):
