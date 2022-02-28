@@ -85,9 +85,9 @@ class ResBlock(nn.Module):
 
         self.conv = nn.Sequential(
             nn.ReLU(), #inplace=True
-            nn.Conv2d(in_channel, channel, 3, padding=1, dilation=dilation_a), #setting cap on dilation
+            nn.Conv2d(in_channel, channel, 3, padding=1, dilation=1), #setting cap on dilation
             nn.ReLU(inplace=True),
-            nn.Conv2d(channel, in_channel, 1, dilation=dilation_b),
+            nn.Conv2d(channel, in_channel, 1, dilation=1),
         )
 
     def forward(self, input):
