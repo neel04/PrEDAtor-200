@@ -50,7 +50,7 @@ def train(loader, val_loader):
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary
-    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256]))) #pretty print visualization of model
+    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256])) #pretty print visualization of model
     print(hl_graph)
     hl_graph.save("./model_graph", format="pdf")
 
