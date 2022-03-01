@@ -79,7 +79,7 @@ def train(loader, val_loader):
                 latent_loss = latent_loss.mean()
 
                 beta_index = epoch  #for consistency
-                if beta_index >= 24:
+                if beta_index > 4: #5-1
                     beta_index = latent_loss_beta_list[-1]
 
                 loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
