@@ -14,6 +14,7 @@ from torch.cuda.amp import GradScaler, autocast
 
 from torchvision import datasets, transforms, utils
 from torchinfo import summary
+import hiddenlayer as hl
 import wandb
 
 from tqdm.auto import tqdm
@@ -49,6 +50,9 @@ def train(loader, val_loader):
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary
+    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256]))) #pretty print visualization of model
+    print(hl_graph)
+    hl_graph.save("./model_graph", format="pdf")
 
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
