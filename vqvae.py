@@ -34,7 +34,7 @@ class Quantize(nn.Module):
         self.register_buffer('embed', embed)
         self.register_buffer('cluster_size', torch.zeros(n_embed))
         self.register_buffer('embed_avg', embed.clone())
-
+    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
     def forward(self, input):
         flatten = input.reshape(-1, self.dim)
         dist = (
