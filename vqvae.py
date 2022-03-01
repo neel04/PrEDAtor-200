@@ -71,6 +71,27 @@ class Quantize(nn.Module):
     def embed_code(self, embed_id):
         return F.embedding(embed_id, self.embed.transpose(0, 1))
 
+def calc_padd(o, k, s, d):
+    '''
+    calculate padding required to compute the same output sizes given the same
+
+    o = output
+    p = padding
+    k = kernel_size
+    s = stride
+    d = dilation
+    '''
+    p = (s*(o-1) - o + d*(k-1) + 1)//2 +1
+    return p #padding
+
+def calc_padd_conv_transpose(o, k, s, d):
+    '''
+    calculates padding required for ConvTransposed2D
+
+    H_out, W_out = H_in, W_in
+    '''
+    p = o - 1 - d*(k-1) + 2*p - [(o - 1)*s]
+    return p #padding
 
 class ResBlock(nn.Module):
     def __init__(self, in_channel, channel, index, args):
@@ -102,20 +123,21 @@ class Encoder(nn.Module):
         super().__init__()
         self.in_channel = in_channel
         self.channel = channel
+
         if stride == 4:
             blocks = [
-                nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1, dilation=1 + args.dilation_rate),
+                nn.Conv2d(in_channel, channel // 2, 5, stride=3, padding=calc_padd(128, 5, 3, 1+args.dilation_rate), dilation = 1+args.dilation_rate),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel // 2, channel, 4, stride=2, padding=1, dilation=1 + args.dilation_rate*2),
+                nn.Conv2d(channel // 2, channel, 5, stride=3, padding=calc_padd(128, 5, 3, 2*args.dilation_rate), dilation=args.dilation_rate*2),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel, channel, 3, padding=1, dilation=1 + args.dilation_rate*3),
+                nn.Conv2d(channel, channel, 4, padding=calc_padd(128, 4, 1, 1+args.dilation_rate), dilation=args.dilation_rate*3),
             ]
 
         elif stride == 2:
             blocks = [
-                nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=1, dilation=1 + args.dilation_rate),
+                nn.Conv2d(in_channel, channel // 2, 4, stride=2, padding=calc_padd(128, 4, 2, 1+args.dilation_rate), dilation=1 + args.dilation_rate),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(channel // 2, channel, 3, padding=1, dilation=1 + args.dilation_rate*2),
+                nn.Conv2d(channel // 2, channel, 3, padding=calc_padd(128, 4, 3, 1 + args.dilation_rate*2), dilation=1 + args.dilation_rate*2),
             ]
 
         for i in range(n_res_block):
@@ -135,7 +157,7 @@ class Decoder(nn.Module):
     ):
         super().__init__()
 
-        blocks = [nn.Conv2d(in_channel, channel, 3, padding=1)]
+        blocks = [nn.Conv2d(in_channel, channel, 3, padding=1, dilation=calc_padd(128, 3, 1, 1+args.dilation_rate))]
 
         for i in range(n_res_block):
             blocks.append(ResBlock(channel, n_res_channel, i, args=args))
@@ -145,10 +167,10 @@ class Decoder(nn.Module):
         if stride == 4:
             blocks.extend(
                 [
-                    nn.ConvTranspose2d(channel, channel // 2, 4, stride=2, padding=1, dilation=1 + args.dilation_rate),
+                    nn.ConvTranspose2d(channel, channel // 2, 4, stride=2, padding=1, dilation=calc_padd_conv_transpose(128, 4, 2, 2*args.dilation_rate)),
                     nn.ReLU(inplace=True),
                     nn.ConvTranspose2d(
-                        channel // 2, out_channel, 4, stride=2, padding=1, dilation=1 + args.dilation_rate*2
+                        channel // 2, out_channel, 4, stride=2, padding=1, calc_padd_conv_transpose(256, 4, 2, 4*args.dilation_rate)
                     ),
                 ]
             )
