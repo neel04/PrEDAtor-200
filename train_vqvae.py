@@ -50,8 +50,8 @@ def train(loader, val_loader):
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary
-    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256])) #pretty print visualization of model
-    print(hl_graph)
+    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256]).to(device), 
+                              transforms=[hl.transforms.Fold("Relu > Conv3x3 > Relu > Conv1x1", "ResBlock"), hl.transforms.FoldDuplicates()]) #pretty print visualization of model
     hl_graph.save("./model_graph", format="pdf")
 
     loader, val_loader = tqdm(loader), tqdm(val_loader)
