@@ -59,7 +59,7 @@ def train(loader, val_loader):
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.30
-    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 5)
+    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 5).tolist()
 
     sample_size = 20
 
