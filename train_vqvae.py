@@ -93,7 +93,8 @@ def train(loader, val_loader):
                 if scheduler is not None:
                     scheduler.step()
 
-                #torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
+                scaler.unscale_(optimizer) #unscaling grads
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
                 scaler.step(optimizer)
 
