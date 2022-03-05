@@ -86,7 +86,7 @@ def train(loader, val_loader):
                 if beta_index > 4: #5-1
                     beta_index = latent_loss_beta_list[-1]
 
-                loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
+                loss = recon_loss + latent_loss_beta_list[int(beta_index)] * latent_loss
 
                 scaler.scale(loss).backward() #added loss to backprop
 
@@ -114,7 +114,7 @@ def train(loader, val_loader):
                         "lr": lr})
 
                 #Performing Validation and loggign out images
-                if epoch > 0 and epoch % 15 == 0:   #i % 100 == 0
+                if epoch > 0 and epoch % 9 == 0:   #i % 100 == 0
                     model.eval()
                     model = model.to(device)
                     #--------------VALIDATION------------------
