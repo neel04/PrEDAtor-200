@@ -77,9 +77,11 @@ class ResBlock(nn.Module):
 
         self.conv = nn.Sequential(
             nn.ReLU(), #inplace=True
+            nn.BatchNorm2d(in_channel),
             nn.Conv2d(in_channel, channel, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channel, in_channel, 1),
+            nn.BatchNorm2d(channel),
+            nn.Conv2d(channel, in_channel, 1)
         )
 
     def forward(self, input):
