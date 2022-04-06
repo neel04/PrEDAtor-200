@@ -25,6 +25,7 @@ import subprocess
 from albumentations.core.composition import Compose
 import glob
 import torchvision.transforms as transforms
+from vqvae import *
 
 import glob
 from PIL import Image
@@ -44,8 +45,8 @@ import torch
 
 """Reading the training and validation files"""
 
-train_imgs = set(glob.glob('./comma10k/imgs/*.png'))
-val_imgs = set(glob.glob('./comma10k/imgs/*9.png'))
+train_imgs = set(glob.glob('/content/comma10k/imgs/*.png'))
+val_imgs = set(glob.glob('/content/comma10k/imgs/*9.png'))
 train_imgs = train_imgs - val_imgs
 
 train_masks = [path.replace('imgs', 'masks') for path in train_imgs]
@@ -97,7 +98,7 @@ validation = Comma10kDataset(val_imgs, val_masks)
 #Completing DataLoader health checks
 
 i,m = next(iter(training))
-
+print(f'length of training dataset: {len(training)}\nLength of validation dataset: {len(validation)}')
 
 training_loader = DataLoader(training, 
                              batch_size=64, 
@@ -119,7 +120,7 @@ from segmentation_models_pytorch import Unet, DeepLabV3, UnetPlusPlus, MAnet
 from segmentation_models_pytorch.losses import *
 from segmentation_models_pytorch.utils.metrics import Accuracy
 
-import_mod = importlib.import_module('.vqvae', package='Comma_VAE')
+#import_mod = importlib.import_module('.vqvae', package='Comma_VAE')
 
 def get_leaf_layers(m):
     children = [*m.children()]
@@ -149,7 +150,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         # A number of stages in decoder (in other words number of downsampling operations), integer
         # use in in forward pass to reduce number of returning features
         self._depth: int = 7
-        self.VQVAE = import_mod.VQVAE(**self.base_args).to(self.device)
+        self.VQVAE = VQVAE(**self.base_args).to(self.device)
         self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
         self.new_layers = get_leaf_layers(self.newmodel[:3])
 
@@ -370,9 +371,7 @@ trainer.predict(validation_loader, ckpt_path='./out')
 
 # Importing model and Visualization (w/ `TorchViz` + `TensorBoard`) 🖼
 
-import_mod = importlib.import_module('.vqvae', package='Comma_VAE')
-
-VQVAE = import_mod.VQVAE(in_channel=3, channel=128, n_res_block=20, 
+VQVAE = VQVAE(in_channel=3, channel=128, n_res_block=20, 
                          n_res_channel=64, n_embed=1024)
 
 '''
