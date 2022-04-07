@@ -221,11 +221,11 @@ for _ in out:
 #@title Inspect Model's Seg Head { run: "auto", vertical-output: true }
 run = True #@param {type:"boolean"}
 if run:
-  model = Unet(encoder_name="Comma_Encoder", encoder_depth=7, decoder_channels=[64,128,32,64,32,32,32], classes=256, encoder_weights='Comma200k').cuda()
-  model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4))
-  #print(model.segmentation_head)
+  model = Unet(encoder_name="Comma_Encoder", encoder_depth=7, decoder_channels=[64,128,32,64,32,32,64], classes=256, encoder_weights='Comma200k').cuda()
+  model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).cuda()
+  print(model.segmentation_head)
 
-model(torch.ones((16, 3, 256, 256)))
+model(torch.ones((16, 3, 256, 256)).cuda())
 
 class Predator(pl.LightningModule):
 
