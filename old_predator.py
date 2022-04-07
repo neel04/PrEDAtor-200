@@ -144,7 +144,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         self.state_dict, self.loaded = None, False #temp holders
 
         # A number of channels for each encoder feature tensor, list of integers
-        self._out_channels = [3, 32, 32, 32, 64, 64, 64, 0]
+        self._out_channels = [3, 32, 32, 32, 64, 64, 32]
         self._in_channels: int = 3
 
         # A number of stages in decoder (in other words number of downsampling operations), integer
@@ -221,10 +221,9 @@ for _ in out:
 #@title Inspect Model's Seg Head { run: "auto", vertical-output: true }
 run = True #@param {type:"boolean"}
 if run:
-  model = Unet(encoder_name="Comma_Encoder", encoder_depth=7, decoder_channels=[128,128,32,32,32,32,32], classes=256, encoder_weights='Comma200k').cuda()
+  model = Unet(encoder_name="Comma_Encoder", encoder_depth=7, decoder_channels=[64,128,32,64,32,32,32], classes=256, encoder_weights='Comma200k').cuda()
   model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4))
   #print(model.segmentation_head)
-  print(model)
 
 model(torch.ones((16, 3, 256, 256)))
 
