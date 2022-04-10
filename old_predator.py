@@ -365,11 +365,13 @@ trainer.fit(
 
 torch.save(trainer, './out')
 
+inf_device = torch.device('cpu')
+
 dummy, _ = next(iter(validation_loader))
 print(dummy.shape)
 
-Predator_model.to('cuda')
-out = Predator_model(dummy.cuda())[0, :, :, :]
+Predator_model.to(inf_device)
+out = Predator_model(dummy.to(inf_device))[0, :, :, :]
 print(out.shape)
 
 out = out.argmax(dim=0)
