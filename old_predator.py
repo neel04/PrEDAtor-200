@@ -155,7 +155,8 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         # use in in forward pass to reduce number of returning features
         self._depth: int = 7
         
-        if self.state_dict is not None:
+        if self.state_dict is not None and isinstance(self.state_dict, dict):
+            print(f'{"-"*10}Loading pretrained model{"-"*10}')
             self.VQVAE = VQVAE(**self.base_args).to(self.device)
             self.VQVAE.load_state_dict(self.state_dict)
         else:
