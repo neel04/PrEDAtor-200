@@ -195,10 +195,11 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         """
         stages = self.get_stages()
         intermediaries, features = [], []
+
+        features.append(x)
+
         for _, i in enumerate(stages):
           x = x.to(self.device)
-          if _ == 0:
-            features.append(x) #appending the first tensor as is
           x = i(x)
           features.append(x)
 
@@ -327,11 +328,15 @@ class Predator(pl.LightningModule):
         return self.shared_epoch_end(outputs, "valid")
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        myopt = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        #ReduceLRonPlateu scheduler
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.005, 
+                                                                threshold_mode='rel', cooldown=0, min_lr=1e-7, eps=1e-08)
+        return myopt, scheduler
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
                           decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
-                          out_classes=256, learning_rate=4e-5)
+                          out_classes=256, learning_rate=4e-4)
 
 mylogger = WandbLogger(project="CommaNet")
 
