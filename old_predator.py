@@ -141,7 +141,11 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.base_args = base_args
-        self.state_dict, self.loaded = None, False #temp holders
+        try:
+            self.state_dict = self.base_args['state_dict']
+            self.base_args.pop('state_dict')
+        except:
+            pass
 
         # A number of channels for each encoder feature tensor, list of integers
         self._out_channels = [3, 32, 32, 32, 64, 64, 32]
@@ -150,7 +154,13 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         # A number of stages in decoder (in other words number of downsampling operations), integer
         # use in in forward pass to reduce number of returning features
         self._depth: int = 7
-        self.VQVAE = VQVAE(**self.base_args).to(self.device)
+        
+        if self.state_dict is not None:
+            self.VQVAE = VQVAE(**self.base_args).to(self.device)
+            self.VQVAE.load_state_dict(self.state_dict)
+        else:
+            self.VQVAE = VQVAE(**self.base_args).to(self.device)
+
         self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
         self.new_layers = get_leaf_layers(self.newmodel[:3])
 
@@ -160,8 +170,8 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
       [_.to(self.device) for _ in module_list]
       return torch.nn.ModuleList(module_list)
 
-    def load_state_dict(self, state_dict):
-      self.state_dict = state_dict
+    def load_state_dict(self, loaded_state_dict):
+      self.base_args['state_dict'] = loaded_state_dict
       self.__init__(self.base_args)
       #self.VQVAE.load_state_dict(self.state_dict)
       #self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
@@ -207,13 +217,13 @@ encoders['Comma_Encoder'] = {
     "params": {
         "base_args": {'in_channel': 3, 'channel': 128,
                       'n_res_block': 20,
-                      'n_res_channel': 64, 'n_embed': 1024}
+                      'n_res_channel': 64, 'n_embed': 1024, 'state_dict':None}
     },
 }
 
 out = Comma_Encoder({'in_channel': 3, 'channel': 128,
                       'n_res_block': 20,
-                      'n_res_channel': 64, 'n_embed': 1024}).forward(torch.zeros((16, 3, 256, 256)))
+                      'n_res_channel': 64, 'n_embed': 1024, 'state_dict':None}).forward(torch.zeros((16, 3, 256, 256)))
 for _ in out:
   print(f'Encode shapes: {_.shape}')
 
@@ -236,7 +246,7 @@ class Predator(pl.LightningModule):
         
         self.model = Unet(
             encoder_depth=encoder_depth, encoder_name=encoder_name, decoder_channels=decoder_channels, classes=out_classes, 
-            encoder_weights='Comma200k',**kwargs
+            encoder_weights='Comma200k', decoder_attention_type='scse', **kwargs
         ).to(self.device)
 
         self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
@@ -329,7 +339,7 @@ pl.seed_everything(69)
 trainer = pl.Trainer(
     accelerator='gpu',
     devices=1,
-    max_epochs=15,
+    max_epochs=10,
     auto_lr_find=True,
     precision=16,
     auto_scale_batch_size=True,
@@ -366,7 +376,11 @@ def replace_tensor_from_dict(tensor, dictionary):
 
 out_converted = replace_tensor_from_dict(out, dict(zip([0, 1, 2, 3, 4, 5], [41, 76, 90, 124, 161, 0])))
 
-Image.fromarray(out_converted.cpu().numpy().astype(np.uint8))
+sample_mask = Image.fromarray(out_converted.cpu().numpy().astype(np.uint8))
+#save sample mask as an image
+sample_mask.save('./sample_mask.png')
+#save sample mask to wandb with mylogger
+mylogger.log_image('sample_mask', sample_mask)
 
 trainer.predict(validation_loader, ckpt_path='./out')
 
