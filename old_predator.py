@@ -332,7 +332,8 @@ class Predator(pl.LightningModule):
         #ReduceLRonPlateu scheduler
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.005, 
                                                                 threshold_mode='rel', cooldown=0, min_lr=1e-7, eps=1e-08)
-        return myopt, scheduler
+                                                                
+        return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
                           decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
