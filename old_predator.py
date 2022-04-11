@@ -66,7 +66,7 @@ class Comma10kDataset(torch.utils.data.Dataset):
                                                transforms.Resize(256),
                                                 transforms.CenterCrop(256),
                                                 transforms.ToTensor(),
-                                                #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                                                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                                                ])
         self.masker = transforms.Compose([
                                                transforms.Resize(256),
@@ -339,7 +339,7 @@ Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
                           decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
                           out_classes=256, learning_rate=4e-4)
 
-mylogger = WandbLogger(project="CommaNet")
+mylogger = WandbLogger(project="CommaNet", name='Xtra_PreNorm')
 
 pl.seed_everything(69)
 
