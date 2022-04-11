@@ -332,7 +332,7 @@ class Predator(pl.LightningModule):
         #ReduceLRonPlateu scheduler
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.005, 
                                                                 threshold_mode='rel', cooldown=0, min_lr=1e-7, eps=1e-08)
-                                                                
+
         return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
@@ -346,7 +346,7 @@ pl.seed_everything(69)
 trainer = pl.Trainer(
     accelerator='gpu',
     devices=1,
-    max_epochs=10,
+    max_epochs=20,
     auto_lr_find=True,
     precision=16,
     auto_scale_batch_size=True,
@@ -363,16 +363,25 @@ trainer.fit(
 )
 
 # Visually inspecting model predictions 🔍"""
+torch.save(Predator_model, "final_predator.ckpt")
 
-torch.save(trainer, './out')
-
-inf_device = torch.device('cpu')
+inf_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 dummy, _ = next(iter(validation_loader))
+#move dummy to inf_device
+dummy = dummy[0].reshape(1, 3, 256, 256).to(inf_device)
+dummy.to(inf_device)
+
+# print which device dummy is on
+print('\n\nDUMMY:',dummy.device)
 print(dummy.shape)
 
 Predator_model.to(inf_device)
-out = Predator_model(dummy.to(inf_device))[0, :, :, :]
+Predator_model.eval()
+
+with torch.no_grad():
+    out = Predator_model(dummy)[0, :, :, :]
+
 print(out.shape)
 
 out = out.argmax(dim=0)
@@ -384,21 +393,21 @@ def replace_tensor_from_dict(tensor, dictionary):
     return tensor
 
 out_converted = replace_tensor_from_dict(out, dict(zip([0, 1, 2, 3, 4, 5], [41, 76, 90, 124, 161, 0])))
-
+print(f'out_converted: {out_converted.shape}')
 sample_mask = Image.fromarray(out_converted.cpu().numpy().astype(np.uint8))
 #save sample mask as an image
 sample_mask.save('./sample_mask.png')
 #save sample mask to wandb with mylogger
-mylogger.log_image('sample_mask', sample_mask)
+mylogger.log_image('sample_mask', [sample_mask])
 
-trainer.predict(validation_loader, ckpt_path='./out')
+#trainer.predict(validation_loader, ckpt_path='./results')
 
 # Importing model and Visualization (w/ `TorchViz` + `TensorBoard`) 🖼
-
+'''
 VQVAE = VQVAE(in_channel=3, channel=128, n_res_block=20, 
                          n_res_channel=64, n_embed=1024)
 
-'''
+
 #Doing Model surgery.. 💉
 
 #removing layers 3 and 6
