@@ -330,7 +330,7 @@ class Predator(pl.LightningModule):
     def configure_optimizers(self):
         myopt = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         #ReduceLRonPlateu scheduler
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.005, 
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.01, 
                                                                 threshold_mode='rel', cooldown=0, min_lr=1e-7, eps=1e-08)
 
         return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
@@ -339,7 +339,7 @@ Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
                           decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
                           out_classes=256, learning_rate=4e-4)
 
-mylogger = WandbLogger(project="CommaNet", name='Xtra_PreNorm')
+mylogger = WandbLogger(project="CommaNet", name='3_Xtra_PreNorm')
 
 pl.seed_everything(69)
 
@@ -362,43 +362,59 @@ trainer.fit(
     val_dataloaders=validation_loader,
 )
 
+class UnNormalize(transforms.Normalize):
+    def __init__(self,mean,std,*args,**kwargs):
+        new_mean = [-m/s for m,s in zip(mean,std)]
+        new_std = [1/s for s in std]
+        super().__init__(new_mean, new_std, *args, **kwargs)
+
+unorm = UnNormalize(**dict(mean=[0.5, 0.5, 0.5],std=[0.5, 0.5, 0.5]))
+
 # Visually inspecting model predictions 🔍"""
 torch.save(Predator_model, "final_predator.ckpt")
 
 inf_device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-dummy, _ = next(iter(validation_loader))
-#move dummy to inf_device
-dummy = dummy[0].reshape(1, 3, 256, 256).to(inf_device)
-dummy.to(inf_device)
-
-# print which device dummy is on
-print('\n\nDUMMY:',dummy.device)
-print(dummy.shape)
-
 Predator_model.to(inf_device)
 Predator_model.eval()
+val_iter = iter(validation_loader)
 
-with torch.no_grad():
-    out = Predator_model(dummy)[0, :, :, :]
+for samples in range(6):
+    #move dummy to inf_device
+    dummy, _ = next(val_iter)
+    dummy = dummy[0].reshape(1, 3, 256, 256).to(inf_device)
+    dummy.to(inf_device)
 
-print(out.shape)
+    # print which device dummy is on
+    print('\n\nDUMMY:',dummy.device)
+    print(dummy.shape)
 
-out = out.argmax(dim=0)
-print(out.shape)
+    with torch.no_grad():
+        out = Predator_model(dummy)[0, :, :, :]
 
-def replace_tensor_from_dict(tensor, dictionary):
-    for key, value in dictionary.items():
-        tensor[tensor == key] = value
-    return tensor
+    out = out.argmax(dim=0)
 
-out_converted = replace_tensor_from_dict(out, dict(zip([0, 1, 2, 3, 4, 5], [41, 76, 90, 124, 161, 0])))
-print(f'out_converted: {out_converted.shape}')
-sample_mask = Image.fromarray(out_converted.cpu().numpy().astype(np.uint8))
-#save sample mask as an image
-sample_mask.save('./sample_mask.png')
-#save sample mask to wandb with mylogger
-mylogger.log_image('sample_mask', [sample_mask])
+    def replace_tensor_from_dict(tensor, dictionary):
+        for key, value in dictionary.items():
+            tensor[tensor == key] = value
+        return tensor
+
+    out_converted = replace_tensor_from_dict(out, dict(zip([0, 1, 2, 3, 4, 5], [41, 76, 90, 124, 161, 0])))
+    print(f'out_converted: {out_converted.shape}')
+    sample_mask = Image.fromarray(out_converted.cpu().numpy().astype(np.uint8))
+
+    # convert a tensor from chw to a hwc using einops
+    dummy = unorm(dummy)
+    dummy = einops.rearrange(dummy, '() c h w -> h w c') * 255
+    #de-normalize dummy with standard deviation 0.5,0.5,0.5 and mean 0.5, 0.5, 0.5
+    
+    source_image = Image.fromarray(dummy.cpu().numpy().astype(np.uint8))
+    #save sample mask as an image
+    sample_mask.save(f'./sample_mask_{samples}.jpg')
+    source_image.save(f'./source_image_{samples}.jpg')
+    
+    #save sample mask to wandb with mylogger
+    mylogger.log_image('sample_mask', [source_image, sample_mask])
 
 #trainer.predict(validation_loader, ckpt_path='./results')
 
