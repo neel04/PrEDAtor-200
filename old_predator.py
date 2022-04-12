@@ -153,7 +153,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
 
         # A number of stages in decoder (in other words number of downsampling operations), integer
         # use in in forward pass to reduce number of returning features
-        self._depth: int = 7
+        self._depth: int = 14
         
         if self.state_dict is not None and isinstance(self.state_dict, dict):
             print(f'{"-"*10}Loading pretrained model{"-"*10}')
@@ -166,8 +166,11 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         self.new_layers = get_leaf_layers(self.newmodel[:3])
 
     def get_stages(self):
-      #return torch.nn.ModuleList([*self.newmodel[:2].to(self.device), torch.nn.Conv2d(128, 3, 2, 2).to(self.device)])
-      module_list = [torch.nn.Sequential(*self.new_layers[:28]), torch.nn.Sequential(*self.new_layers[28:56]), torch.nn.Sequential(*self.new_layers[56:84]), torch.nn.Sequential(*self.new_layers[84:111]), torch.nn.Sequential(*self.new_layers[111:139]), torch.nn.Sequential(*self.new_layers[139:167]), torch.nn.Sequential(*self.new_layers[167:])] #, torch.nn.Conv2d(64, 3, 2, 2))
+      #all modules for skip connections
+      module_list = [torch.nn.Sequential(*self.new_layers[:12]), torch.nn.Sequential(*self.new_layers[12:26]), torch.nn.Sequential(*self.new_layers[26:38]), torch.nn.Sequential(*self.new_layers[38:50]),
+                     torch.nn.Sequential(*self.new_layers[50:62]), torch.nn.Sequential(*self.new_layers[62:74]), torch.nn.Sequential(*self.new_layers[74:87]), torch.nn.Sequential(*self.new_layers[87:99]),
+                     torch.nn.Sequential(*self.new_layers[99:111]), torch.nn.Sequential(*self.new_layers[111:123]), torch.nn.Sequential(*self.new_layers[123:135]), torch.nn.Sequential(*self.new_layers[135:147]),
+                     torch.nn.Sequential(*self.new_layers[147:159]), torch.nn.Sequential(*self.new_layers[159:] + [torch.nn.ReLU()])]
       [_.to(self.device) for _ in module_list]
       return torch.nn.ModuleList(module_list)
 
@@ -232,7 +235,7 @@ for _ in out:
 #@title Inspect Model's Seg Head { run: "auto", vertical-output: true }
 run = True #@param {type:"boolean"}
 if run:
-  model = Unet(encoder_name="Comma_Encoder", encoder_depth=7, decoder_channels=[64,128,32,64,32,32,64],
+  model = Unet(encoder_name="Comma_Encoder", encoder_depth=14, decoder_channels=[64,128,32,64,32,32,64],
                classes=256, encoder_weights='Comma200k', decoder_attention_type='scse').cuda()
                
   model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).cuda()
@@ -335,7 +338,7 @@ class Predator(pl.LightningModule):
 
         return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
 
-Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=7,
+Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=14,
                           decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
                           out_classes=256, learning_rate=4e-4)
 
