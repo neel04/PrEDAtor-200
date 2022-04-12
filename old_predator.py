@@ -235,7 +235,7 @@ for _ in out:
 #@title Inspect Model's Seg Head { run: "auto", vertical-output: true }
 run = True #@param {type:"boolean"}
 if run:
-  model = Unet(encoder_name="Comma_Encoder", encoder_depth=14, decoder_channels=[64,128,32,64,32,32,64],
+  model = Unet(encoder_name="Comma_Encoder", encoder_depth=14, decoder_channels=[64,128,128,128,128,128,128,128,128,128,128,128,128,64],
                classes=256, encoder_weights='Comma200k', decoder_attention_type='scse').cuda()
                
   model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).cuda()
@@ -254,7 +254,7 @@ class Predator(pl.LightningModule):
             encoder_weights='Comma200k', decoder_attention_type='scse', **kwargs
         ).to(self.device)
 
-        self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
+        self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(16, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
 
         self.model.encoder.requires_grad_ = True
 
@@ -339,10 +339,10 @@ class Predator(pl.LightningModule):
         return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=14,
-                          decoder_channels=[64,64,64,128,128,64,64], #[64,64,64,128,128,128,64]
+                          decoder_channels=[64,128,128,128,128,128,128,128,128,128,128,128,128,16],
                           out_classes=256, learning_rate=4e-4)
 
-mylogger = WandbLogger(project="CommaNet", name='3_Xtra_PreNorm')
+mylogger = WandbLogger(project="CommaNet", name='14_skip_con')
 
 pl.seed_everything(69)
 
