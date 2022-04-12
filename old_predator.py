@@ -103,8 +103,8 @@ print(f'length of training dataset: {len(training)}\nLength of validation datase
 training_loader = DataLoader(training, 
                              batch_size=64, 
                              pin_memory=True,
-                             num_workers=8,
-                             prefetch_factor=2)
+                             num_workers=4,
+                             prefetch_factor=8)
 
 validation_loader = DataLoader(validation, 
                              batch_size=64, 
@@ -251,7 +251,7 @@ class Predator(pl.LightningModule):
         
         self.model = Unet(
             encoder_depth=encoder_depth, encoder_name=encoder_name, decoder_channels=decoder_channels, classes=out_classes, 
-            encoder_weights='Comma200k', decoder_attention_type='scse', **kwargs
+            encoder_weights='Comma200k', **kwargs
         ).to(self.device)
 
         self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
@@ -266,7 +266,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = FocalLoss(mode='multiclass') #torch.nn.CrossEntropyLoss()
+        self.loss_fn = torch.nn.CrossEntropyLoss()
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
@@ -336,7 +336,7 @@ class Predator(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(myopt, mode='min', factor=0.1, patience=1, verbose=True, threshold=0.01, 
                                                                 threshold_mode='rel', cooldown=0, min_lr=1e-7, eps=1e-08)
 
-        return {'optimizer': myopt, 'lr_scheduler': scheduler, "monitor": "loss"}
+        return [myopt], [{'scheduler': scheduler, "monitor": "loss"}]
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=14,
                           decoder_channels=[64,128,128,128,128,128,128,128,128,128,128,128,128,64],
