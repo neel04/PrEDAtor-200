@@ -310,8 +310,12 @@ class Predator(pl.LightningModule):
         return {"loss": loss, "log": logs}          
 
     def training_epoch_end(self, outputs):
+        if self.current_epoch < 2:
+            #freeze encoder
+            self.model.encoder.requires_grad_(False)
+        
         return self.shared_epoch_end(outputs, "train")
-
+        
     def validation_step(self, batch, batch_idx):
         features = batch[0].float()
         masks = batch[1].squeeze(1).long()
