@@ -66,7 +66,7 @@ class Comma10kDataset(torch.utils.data.Dataset):
                                                transforms.Resize(256),
                                                 transforms.CenterCrop(256),
                                                 transforms.ToTensor(),
-                                                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                                                #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                                                ])
         self.masker = transforms.Compose([
                                                transforms.Resize(256),
@@ -240,7 +240,6 @@ if run:
                
   model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).cuda()
   
-  print(model)
 
 model(torch.ones((16, 3, 256, 256)).cuda())
 
@@ -251,11 +250,10 @@ class Predator(pl.LightningModule):
         
         self.model = Unet(
             encoder_depth=encoder_depth, encoder_name=encoder_name, decoder_channels=decoder_channels, classes=out_classes, 
-            encoder_weights='Comma200k', **kwargs
+            encoder_weights='Comma200k', decoder_attention_type='scse', **kwargs
         ).to(self.device)
-
-        self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
-
+        print(self.model)
+        self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(6, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
         self.model.encoder.requires_grad_ = True
 
         self.learning_rate = learning_rate
@@ -266,7 +264,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.loss_fn = FocalLoss(mode='multiclass')
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
@@ -288,7 +286,6 @@ class Predator(pl.LightningModule):
         logits_mask = self.forward(image)
 
         # Predicted mask contains logits, and loss_fn param `from_logits` is set to True
-
         loss = self.loss_fn(logits_mask, tgt_mask)
 
         return {
@@ -340,7 +337,7 @@ class Predator(pl.LightningModule):
 
 Predator_model = Predator(encoder_name="Comma_Encoder", encoder_depth=14,
                           decoder_channels=[64,128,128,128,128,128,128,128,128,128,128,128,128,64],
-                          out_classes=256, learning_rate=4e-4)
+                          out_classes=6, learning_rate=4e-4)
 
 mylogger = WandbLogger(project="CommaNet", name='14_skip_con')
 
