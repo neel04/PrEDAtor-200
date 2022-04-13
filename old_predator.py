@@ -310,9 +310,14 @@ class Predator(pl.LightningModule):
         return {"loss": loss, "log": logs}          
 
     def training_epoch_end(self, outputs):
-        if self.current_epoch < 2:
+        if self.current_epoch <  2:
             #freeze encoder
             self.model.encoder.requires_grad_(False)
+            self.model.decoder.requires_grad_(True)
+        else:
+            print('\n\nEncoder is Unfrozen!!\n\n')
+            self.model.encoder.requires_grad_(True)
+            self.model.decoder.requires_grad_(True)
         
         return self.shared_epoch_end(outputs, "train")
         
