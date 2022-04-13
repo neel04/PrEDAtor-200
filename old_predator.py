@@ -214,7 +214,7 @@ encoders['Comma_Encoder'] = {
         "Comma200k": {
             "mean": [0.5, 0.5, 0.5],
             "std": [0.5, 0.5, 0.5],
-            "url": "https://filetransfer.io/data-package/aMSrvwAL/download",
+            "url": "https://filetransfer.io/data-package/RUIRyQAi/download",
             "input_space": "RGB",
             "input_range": [0, 1],
         },
