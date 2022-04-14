@@ -163,6 +163,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
             self.VQVAE = VQVAE(**self.base_args).to(self.device)
 
         self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
+        del self.VQVAE
         self.new_layers = get_leaf_layers(self.newmodel[:3])
 
     def get_stages(self):
@@ -250,11 +251,11 @@ class Predator(pl.LightningModule):
         
         self.model = Unet(
             encoder_depth=encoder_depth, encoder_name=encoder_name, decoder_channels=decoder_channels, classes=out_classes, 
-            encoder_weights='Comma200k', decoder_attention_type='scse', **kwargs
+            encoder_weights='Comma200k', **kwargs
         ).to(self.device)
         print(self.model)
         self.model.segmentation_head[1] = torch.nn.ConvTranspose2d(6, 6, kernel_size=(4, 4), stride=(4, 4)).to(self.device)
-        self.model.encoder.requires_grad_ = True
+        self.model.encoder.requires_grad_(False)
 
         self.learning_rate = learning_rate
 
@@ -264,7 +265,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = FocalLoss(mode='multiclass')
+        self.loss_fn = FocalLoss(mode='multiclass', gamma=3)
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
@@ -312,12 +313,12 @@ class Predator(pl.LightningModule):
     def training_epoch_end(self, outputs):
         if self.current_epoch <  2:
             #freeze encoder
-            self.model.encoder.requires_grad_= False
-            self.model.decoder.requires_grad_ = True
+            self.model.encoder.requires_grad_(False)
+            self.model.decoder.requires_grad_(True)
         else:
             print('\n\nEncoder is Unfrozen!!\n\n')
-            self.model.encoder.requires_grad_ = True
-            self.model.decoder.requires_grad_ = True
+            self.model.encoder.requires_grad_(True)
+            self.model.decoder.requires_grad_(True)
         
         return self.shared_epoch_end(outputs, "train")
         
