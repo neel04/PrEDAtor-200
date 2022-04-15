@@ -14,10 +14,11 @@
 '''
 from pytorch_lightning.loggers import WandbLogger
 
+#suppress future warnings
+import warnings
+warnings.filterwarnings("ignore")
 import cv2
-import albumentations as A
 import numpy as np
-from sympy import O
 
 from tqdm.autonotebook import tqdm
 
@@ -46,9 +47,9 @@ import torch
 
 """Reading the training and validation files"""
 
-train_imgs = set(glob.glob('/content/comma10k/imgs/*.png'))
-val_imgs = set(glob.glob('/content/comma10k/imgs/*9.png'))
-train_imgs = train_imgs - val_imgs
+train_imgs = list(glob.glob('/content/comma10k/imgs/*.png'))
+val_imgs = list(glob.glob('/content/comma10k/imgs/*9.png'))
+train_imgs = [x for x in train_imgs if x not in val_imgs]
 
 train_masks = [path.replace('imgs', 'masks') for path in train_imgs]
 val_masks = [path.replace('imgs', 'masks') for path in val_imgs]
@@ -59,19 +60,34 @@ def exec_bash(command):
 # Datasets 📜
 to_torch_ten = transforms.ToTensor()
 
+#precomputing superpixels
+def superpixels_precom(paths):
+    print(f'\nPrecomputing superpixels... would take hours :(')
+    exec_bash(f'mkdir ./comma10k/superpixels')
+
+    for img_path in tqdm(paths):
+        og_image = cv2.imread(img_path)
+        src_image = cv2.resize(og_image, (256, 256))  
+
+        segments = slic(src_image, n_segments=1500, sigma=1, compactness=2, multichannel=True)
+        superpixels = color.label2rgb(segments, src_image, kind='avg')
+
+        cv2.imwrite(f'./comma10k/superpixels/{img_path.split("/")[-1]}', superpixels)
+
+#check if path exists
+if not os.path.exists('./comma10k/superpixels'):
+    superpixels_precom(train_imgs)
+    superpixels_precom(val_imgs)
+
 def algo_preprocessor(img_path):
     og_image = cv2.imread(img_path)
     src_image = cv2.resize(og_image, (256, 256))
     #convert image to gray
     gray_image = cv2.cvtColor(src_image, cv2.COLOR_BGR2GRAY)
-    rgb_src_image = cv2.cvtColor(src_image, cv2.COLOR_BGR2RGB) / 255.0
     
     img_blur = np.uint8(cv2.GaussianBlur(gray_image, (3,3), 0))
     
     canny_edges = cv2.cvtColor(cv2.Canny(image=img_blur, threshold1=20, threshold2=50), cv2.COLOR_BGR2RGB) # Canny Edge Detection
-
-    segments = slic(rgb_src_image, n_segments=2000, sigma=1, compactness=2)
-    superpixels = color.label2rgb(segments, src_image, kind='avg')
 
     return to_torch_ten(superpixels) / 255.0 , to_torch_ten(canny_edges) / 255.0
 
