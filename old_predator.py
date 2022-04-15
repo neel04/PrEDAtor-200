@@ -192,8 +192,12 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         self.new_layers = get_leaf_layers(self.newmodel[:3])
 
     def get_stages(self):
+      first_stage = torch.nn.Sequential(*self.new_layers[:12])
+      #editing first stage to accomodate for additional channels
+      first_stage[0] = torch.nn.Conv2d(9, 64, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1))
+
       #all modules for skip connections
-      module_list = [torch.nn.Sequential(*self.new_layers[:12]), torch.nn.Sequential(*self.new_layers[12:26]), torch.nn.Sequential(*self.new_layers[26:38]), torch.nn.Sequential(*self.new_layers[38:50]),
+      module_list = [torch.nn.Sequential(first_stage), torch.nn.Sequential(*self.new_layers[12:26]), torch.nn.Sequential(*self.new_layers[26:38]), torch.nn.Sequential(*self.new_layers[38:50]),
                      torch.nn.Sequential(*self.new_layers[50:62]), torch.nn.Sequential(*self.new_layers[62:74]), torch.nn.Sequential(*self.new_layers[74:87]), torch.nn.Sequential(*self.new_layers[87:99]),
                      torch.nn.Sequential(*self.new_layers[99:111]), torch.nn.Sequential(*self.new_layers[111:123]), torch.nn.Sequential(*self.new_layers[123:135]), torch.nn.Sequential(*self.new_layers[135:147]),
                      torch.nn.Sequential(*self.new_layers[147:159]), torch.nn.Sequential(*self.new_layers[159:] + [torch.nn.ReLU()])]
@@ -253,7 +257,7 @@ encoders['Comma_Encoder'] = {
 
 out = Comma_Encoder({'in_channel': 3, 'channel': 128,
                       'n_res_block': 20,
-                      'n_res_channel': 64, 'n_embed': 1024}).forward(torch.zeros((16, 3, 256, 256)))
+                      'n_res_channel': 64, 'n_embed': 1024}).forward(torch.zeros((16, 9, 256, 256)))
 for _ in out:
   print(f'Encode shapes: {_.shape}')
 
@@ -266,7 +270,7 @@ if run:
   model.segmentation_head[1] = torch.nn.ConvTranspose2d(256, 6, kernel_size=(4, 4), stride=(4, 4)).cuda()
   
 
-model(torch.ones((16, 3, 256, 256)).cuda())
+model(torch.ones((16, 9, 256, 256)).cuda())
 
 class Predator(pl.LightningModule):
 
