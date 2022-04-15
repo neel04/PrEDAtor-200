@@ -17,12 +17,11 @@ from pytorch_lightning.loggers import WandbLogger
 import cv2
 import albumentations as A
 import numpy as np
-import random
+from sympy import O
 
 from tqdm.autonotebook import tqdm
 
 import subprocess
-from albumentations.core.composition import Compose
 import glob
 import torchvision.transforms as transforms
 from vqvae import *
@@ -35,8 +34,10 @@ import random
 
 import matplotlib.pyplot as plt
 from torchinfo import summary
+from skimage.segmentation import slic
+from skimage.segmentation import mark_boundaries
+from skimage import measure, color
 
-from torchviz import make_dot, make_dot_from_trace
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
@@ -56,6 +57,23 @@ def exec_bash(command):
     subprocess.call(command, shell=True)
 
 # Datasets 📜
+to_torch_ten = transforms.ToTensor()
+
+def algo_preprocessor(img_path):
+    og_image = cv2.imread(img_path)
+    src_image = cv2.resize(og_image, (256, 256))
+    #convert image to gray
+    gray_image = cv2.cvtColor(src_image, cv2.COLOR_BGR2GRAY)
+    rgb_src_image = cv2.cvtColor(src_image, cv2.COLOR_BGR2RGB) / 255.0
+    
+    img_blur = np.uint8(cv2.GaussianBlur(gray_image, (3,3), 0))
+    
+    canny_edges = cv2.cvtColor(cv2.Canny(image=img_blur, threshold1=20, threshold2=50), cv2.COLOR_BGR2RGB) # Canny Edge Detection
+
+    segments = slic(rgb_src_image, n_segments=2000, sigma=1, compactness=2)
+    superpixels = color.label2rgb(segments, src_image, kind='avg')
+
+    return to_torch_ten(superpixels) / 255.0 , to_torch_ten(canny_edges) / 255.0
 
 class Comma10kDataset(torch.utils.data.Dataset):
     def __init__(self, imgs, masks):
@@ -65,7 +83,7 @@ class Comma10kDataset(torch.utils.data.Dataset):
                                                transforms.Resize(256),
                                                 transforms.CenterCrop(256),
                                                 transforms.ToTensor(),
-                                                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                                                #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                                                ])
         self.masker = transforms.Compose([
                                                transforms.Resize(256),
@@ -82,14 +100,17 @@ class Comma10kDataset(torch.utils.data.Dataset):
         return len(self.imgs)
  
     def __getitem__(self, idx):
+      sup_pix, cannied = algo_preprocessor(self.imgs[idx])
+
       image = cv2.imread(self.imgs[idx])
       mask = self.masker(Image.fromarray(cv2.imread(self.masks[idx], 0).astype('uint8'))) * 255
 
       img, mask = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)), mask
       mask = np.stack([(mask == v) for v in self.class_values], axis=-1).astype('uint8')
       mask = torch.from_numpy(einops.rearrange(mask, '() h w c -> () c h w'))
-
-      return self.transformer(img), torch.argmax(mask, dim=1)
+      
+      return torch.cat([self.transformer(img), sup_pix, cannied], dim=0), torch.argmax(mask, dim=1)
+      #(64, 9, 256, 256) ; (64, 256, 256)
 
 training = Comma10kDataset(train_imgs, train_masks)
 validation = Comma10kDataset(val_imgs, val_masks)
@@ -97,19 +118,20 @@ validation = Comma10kDataset(val_imgs, val_masks)
 #Completing DataLoader health checks
 
 i,m = next(iter(training))
-print(f'length of training dataset: {len(training)}\nLength of validation dataset: {len(validation)}')
+
+print(f'\nlength of training dataset: {len(training)}\nLength of validation dataset: {len(validation)}')
 
 training_loader = DataLoader(training, 
                              batch_size=64, 
                              pin_memory=True,
                              num_workers=4,
-                             prefetch_factor=8)
+                             prefetch_factor=16)
 
 validation_loader = DataLoader(validation, 
                              batch_size=64, 
                              pin_memory=True,
                              num_workers=16,
-                             prefetch_factor=2)
+                             prefetch_factor=8)
 
 #Transfer Learning 🚀
 
