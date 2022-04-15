@@ -29,7 +29,7 @@ from vqvae import *
 
 import glob
 from PIL import Image
-import importlib
+import os
 import einops
 import random
 
@@ -53,7 +53,6 @@ train_masks = [path.replace('imgs', 'masks') for path in train_imgs]
 val_masks = [path.replace('imgs', 'masks') for path in val_imgs]
 
 def exec_bash(command):
-    
     subprocess.call(command, shell=True)
 
 # Datasets 📜
@@ -66,7 +65,7 @@ class Comma10kDataset(torch.utils.data.Dataset):
                                                transforms.Resize(256),
                                                 transforms.CenterCrop(256),
                                                 transforms.ToTensor(),
-                                                #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                                                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                                                ])
         self.masker = transforms.Compose([
                                                transforms.Resize(256),
@@ -141,11 +140,15 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.base_args = base_args
-        try:
-            self.state_dict = self.base_args['state_dict']
-            self.base_args.pop('state_dict')
-        except:
-            pass
+        
+        #check if base_vqvae.pt exists
+        if not os.path.exists('./base_vqvae.pt'):
+            chkp_url = encoders['Comma_Encoder']['pretrained_settings']['Comma200k']['url']
+            exec_bash(f'wget {chkp_url} -O base_vqvae.pt')
+        else:
+            print('Already Downloaded')
+        
+        vqvae_state = torch.load(f'base_vqvae.pt', map_location=self.device)
 
         # A number of channels for each encoder feature tensor, list of integers
         self._out_channels = [3, 32, 32, 32, 64, 64, 32]
@@ -155,13 +158,13 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         # use in in forward pass to reduce number of returning features
         self._depth: int = 14
         
-        if self.state_dict is not None and isinstance(self.state_dict, dict):
+        if vqvae_state is not None:
             print(f'{"-"*10}Loading pretrained model{"-"*10}')
             self.VQVAE = VQVAE(**self.base_args).to(self.device)
-            self.VQVAE.load_state_dict(self.state_dict)
+            self.VQVAE.load_state_dict(vqvae_state)
         else:
             self.VQVAE = VQVAE(**self.base_args).to(self.device)
-
+        
         self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
         del self.VQVAE
         self.new_layers = get_leaf_layers(self.newmodel[:3])
@@ -176,8 +179,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
       return torch.nn.ModuleList(module_list)
 
     def load_state_dict(self, loaded_state_dict):
-      self.base_args['state_dict'] = loaded_state_dict
-      self.__init__(self.base_args)
+      pass
       #self.VQVAE.load_state_dict(self.state_dict)
       #self.newmodel = torch.nn.Sequential(*(list(self.VQVAE.children())))
       #self.new_layers = get_leaf_layers(self.newmodel[:3])
@@ -223,13 +225,13 @@ encoders['Comma_Encoder'] = {
     "params": {
         "base_args": {'in_channel': 3, 'channel': 128,
                       'n_res_block': 20,
-                      'n_res_channel': 64, 'n_embed': 1024, 'state_dict':None}
+                      'n_res_channel': 64, 'n_embed': 1024}
     },
 }
 
 out = Comma_Encoder({'in_channel': 3, 'channel': 128,
                       'n_res_block': 20,
-                      'n_res_channel': 64, 'n_embed': 1024, 'state_dict':None}).forward(torch.zeros((16, 3, 256, 256)))
+                      'n_res_channel': 64, 'n_embed': 1024}).forward(torch.zeros((16, 3, 256, 256)))
 for _ in out:
   print(f'Encode shapes: {_.shape}')
 
@@ -265,7 +267,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = FocalLoss(mode='multiclass', gamma=3)
+        self.loss_fn = DiceLoss(mode='multiclass', from_logits=True) #FocalLoss(mode='multiclass', gamma=3) 
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
