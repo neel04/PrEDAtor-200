@@ -47,8 +47,8 @@ import torch
 
 """Reading the training and validation files"""
 
-train_imgs = list(glob.glob('/content/comma10k/imgs/*.png'))
-val_imgs = list(glob.glob('/content/comma10k/imgs/*9.png'))
+train_imgs = list(glob.glob('/content/comma10k/imgs/*.png')) + list(glob.glob('/content/comma10k/imgs/*.jpg'))
+val_imgs = list(glob.glob('/content/comma10k/imgs/*9.png')) + list(glob.glob('/content/comma10k/imgs/*9.jpg'))
 train_imgs = [x for x in train_imgs if x not in val_imgs]
 
 train_masks = [path.replace('imgs', 'masks') for path in train_imgs]
