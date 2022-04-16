@@ -80,6 +80,7 @@ if not os.path.exists('./comma10k/superpixels'):
     superpixels_precom(val_imgs)
 
 def algo_preprocessor(img_path):
+    #Cannying the image
     og_image = cv2.imread(img_path)
     src_image = cv2.resize(og_image, (256, 256))
     #convert image to gray
@@ -89,7 +90,10 @@ def algo_preprocessor(img_path):
     
     canny_edges = cv2.cvtColor(cv2.Canny(image=img_blur, threshold1=20, threshold2=50), cv2.COLOR_BGR2RGB) # Canny Edge Detection
 
-    return to_torch_ten(superpixels) / 255.0 , to_torch_ten(canny_edges) / 255.0
+    #loading superpixels
+    superpixels = cv2.cvtColor(cv2.imread(f'./comma10k/superpixels/{img_path.split("/")[-1]}'), cv2.COLOR_BGR2RGB)
+    return to_torch_ten(superpixels), to_torch_ten(canny_edges)
+
 
 class Comma10kDataset(torch.utils.data.Dataset):
     def __init__(self, imgs, masks):
