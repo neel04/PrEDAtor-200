@@ -314,7 +314,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = FocalLoss(mode='multiclass', gamma=3) #DiceLoss(mode='multiclass', from_logits=True)
+        self.loss_fn = FocalLoss(mode='multiclass', gamma=2) #DiceLoss(mode='multiclass', from_logits=True)
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
