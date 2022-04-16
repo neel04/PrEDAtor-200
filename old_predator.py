@@ -145,7 +145,8 @@ training_loader = DataLoader(training,
                              batch_size=64, 
                              pin_memory=True,
                              num_workers=4,
-                             prefetch_factor=16)
+                             prefetch_factor=16,
+                             shuffle=True)
 
 validation_loader = DataLoader(validation, 
                              batch_size=64, 
