@@ -191,7 +191,7 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
         else:
             print('Already Downloaded')
         
-        vqvae_state = torch.load(f'base_vqvae.pt', map_location=self.device)
+        vqvae_state = torch.load(chkp_path, map_location=self.device)
 
         # A number of channels for each encoder feature tensor, list of integers
         self._out_channels = [3, 32, 32, 32, 64, 64, 32]
