@@ -103,7 +103,7 @@ class Comma10kDataset(torch.utils.data.Dataset):
                                                transforms.Resize(256),
                                                 transforms.CenterCrop(256),
                                                 transforms.ToTensor(),
-                                                #transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+                                                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
                                                ])
         self.masker = transforms.Compose([
                                                transforms.Resize(256),
@@ -183,10 +183,11 @@ class Comma_Encoder(torch.nn.Module, EncoderMixin):
 
         self.base_args = base_args
         
+        chkp_path = "/root/.cache/torch/hub/checkpoints/download"
         #check if base_vqvae.pt exists
-        if not os.path.exists('./base_vqvae.pt'):
+        if not os.path.exists(chkp_path):
             chkp_url = encoders['Comma_Encoder']['pretrained_settings']['Comma200k']['url']
-            exec_bash(f'wget {chkp_url} -O base_vqvae.pt')
+            exec_bash(f'wget {chkp_url} -O {chkp_path}')
         else:
             print('Already Downloaded')
         
@@ -313,7 +314,7 @@ class Predator(pl.LightningModule):
         self.register_buffer("mean", torch.tensor(params["mean"]).view(1, 3, 1, 1))
 
         # for image segmentation dice loss could be the best first choice
-        self.loss_fn = DiceLoss(mode='multiclass', from_logits=True) #FocalLoss(mode='multiclass', gamma=3) 
+        self.loss_fn = FocalLoss(mode='multiclass', gamma=3) #DiceLoss(mode='multiclass', from_logits=True)
         self.val_metric = torch.nn.CrossEntropyLoss()
 
     def forward(self, image):
