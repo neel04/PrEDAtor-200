@@ -1,5 +1,6 @@
 # PrEDAtor-200
 > Pretrained Encoder-Decoder Archicture for Comma-200k
+### Experiments to obtain the same accuracy for segmentation, with nearly half the parameters.
 
 # Introduction
 This is a repo containing all the various bits and pieces of code I used in my various experiments exploring self-driving datasets like [Comma-10k](https://github.com/commaai/comma10k).
@@ -18,9 +19,13 @@ A *highly* condensed summary of my experiments - since my code is all over the p
 | Run | Best Validation loss | Parameters | Logs |
 | --- | ----------- | --- | --- |
 | Comma-10k (OG) baseline | `0.0631` | ~21M | [Yassine's Base](https://pastebin.com/1zwYGG8T) |
-| Predator-baseline | `0.0654` | ~13.2M | [Pred_HRnet](https://pastebin.com/MkP4sRA2) |
+| Predator-baseline | `0.0654` | ~13.2M | [Pred_HRnet](https://pastebin.com/MkP4sRA2) |     
 
-![baseline_vs_mine_loss](https://user-images.githubusercontent.com/11617870/169167253-f18cbb8f-1c52-47eb-a23d-7d65b23acfc7.png =250x250)
+
+==> Giving a nearly `45.6%` decrease in parameters with a minor difference of losses - easily remedied by Hyperparameter tuning and the different selection of a seed during runs.    
+<br>
+
+<img src="https://user-images.githubusercontent.com/11617870/169167253-f18cbb8f-1c52-47eb-a23d-7d65b23acfc7.png" alt="baseline_vs_mine_plot" width="650"/>
 
 ## Reproduction details
 
