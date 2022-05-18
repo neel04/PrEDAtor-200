@@ -13,11 +13,26 @@ A *highly* condensed summary of my experiments - since my code is all over the p
 
 - I attempted to pre-train an unsupervised Pre-trained VQ-VAE-2 [Vector Quantization Variational autoencoder](https://arxiv.org/abs/1906.00446) on Comma-200k; It works well, but doesn't help in Segmentation due to the hierarchial encoder not propogating enough information for fine-grained tasks. It can however be used for tasks which operate over a lower rank, like regression/trajectory prediction/classification/etc.
 
-- In one of my experiments, it turned out providing simple pre-processed images to the encoder (concatted) w/ a FPN (Fully-Pyramidal Network) decoder + HRNet (High Resolution Net preserved fine-grained features and showed promising results with lesser parameters in the current Public baseline. 
+- In one of my experiments, it turned out providing simple pre-processed images to the encoder (concatted) w/ a FPN (Fully-Pyramidal Network) decoder + HRNet (High Resolution Net preserved fine-grained features and showed promising results with lesser parameters in the current Public baseline. This was done on `256x256` image size due to resource constraints. 
 
-### Takeway for future FSD breakthroughs?
+| Run | Best Validation loss | Parameters | Logs |
+| --- | ----------- | --- | --- |
+| Comma-10k (OG) baseline | `0.0631` | ~21M | [Yassine's Base](https://pastebin.com/1zwYGG8T) |
+| Predator-baseline | `0.0654` | ~13.2M | [Pred_HRnet](https://pastebin.com/MkP4sRA2) |
 
-> "Simplicity is the ultimate sophistication - Steve Jobs"
+![baseline_vs_mine_loss](https://user-images.githubusercontent.com/11617870/169167253-f18cbb8f-1c52-47eb-a23d-7d65b23acfc7.png =250x250)
+
+## Reproduction details
+
+For comparing Yassine's 'OG' runs, the code has been **MODIFIED** slightly to deal with API changes and random Colab errors which seem to plague me in particular. [This](https://github.com/neel04/predator-baseline/tree/f9b42eb23f17d8a8781dbf21fa9dda10329653ab) is the version where the `256x256` runs were done - I recommend `diff`-ing and ensuring there were no errors on my part. 
+
+For convenience and reproducibility's sake, I forked https://github.com/neel04/predator-baseline/tree/main Yassine's repo to make things more readable and neater. Use my scripts at your own risk. 
+
+All environments used are either Kaggle or Colab. Both of them use mostly the same underlying packages so there shouldn't be any major issues which are more than a few `pip` commands away.
+
+### Takeway for future FSD research?
+
+> *"Simplicity is the ultimate sophistication - Steve Jobs"*
 
 ### What's Next?
 
