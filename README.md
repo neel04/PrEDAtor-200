@@ -16,11 +16,11 @@ A *highly* condensed summary of my experiments - since my code is all over the p
 
 - In one of my experiments, it turned out providing simple pre-processed images to the encoder (concatted) w/ a FPN (Fully-Pyramidal Network) decoder + HRNet (High Resolution Net preserved fine-grained features and showed promising results with lesser parameters in the current Public baseline. This was done on `256x256` image size due to resource constraints. 
 
-| Run | Best Validation loss | Parameters | Logs |
-| --- | ----------- | --- | --- |
-| Comma-10k (OG) baseline | `0.0631` | ~21M | [Yassine's Base](https://pastebin.com/1zwYGG8T) |
-| Predator-baseline | `0.0654` | ~13.2M | [Pred_HRnet](https://pastebin.com/MkP4sRA2) |     
-
+| Run | Best Validation loss | Parameters | Logs | % Difference |
+| --- | ----------- | --- | --- | --- |
+| Comma-10k (OG) baseline | `0.0631` | ~21M | [Yassine's Base](https://pastebin.com/1zwYGG8T) | 0% |
+| Comma-10k (effnet_b3) baseline | `0.0745` | ~13.2M | [Yassine's effnetb3](https://pastebin.com/peLR4svt) | -16.5% (against OG baseline) | 
+| Predator-baseline | `0.0654` | ~13.3M | [Pred_HRnet](https://pastebin.com/MkP4sRA2) | **+13%** (against `effnet_b3` baseline) |
 
 ==> Giving a nearly `45.6%` decrease in parameters with a minor difference of losses - easily remedied by Hyperparameter tuning and the different selection of a seed during runs.    
 <br>
@@ -45,6 +45,12 @@ I'll be planning some future experiments on studying the vaiablilty of some *ver
 
 # Credits
 Thanks to Rosinality for providing such a wonderfully easy and elegant VQ-VAE-2 [implementation](https://github.com/rosinality/vq-vae-2-pytorch), Yassine Yousfi for his crystal clear baseline which I forked, and of course comma.ai for generiously providing all the datasets used. 
+
+## Final Notes
+
+If someone spots any bugs, mistakes or issues with this repository - please do let me know! I feel that this project could be done in a more structured way especially fully comitting to logging tools like `WandB` rather than the mess of experiments and notebooks which may introduce more headaches than help. 
+
+PRs are more than welcome! 🤗
 
 # Contact
 Neel Gupta    
