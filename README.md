@@ -1,5 +1,6 @@
 # PrEDAtor-200
 > Pretrained Encoder-Decoder Archicture for Comma-200k
+
 ### Experiments to obtain the same accuracy for segmentation, with nearly half the parameters.
 
 # Introduction
