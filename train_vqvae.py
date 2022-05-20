@@ -14,6 +14,7 @@ from torch.cuda.amp import GradScaler, autocast
 
 from torchvision import datasets, transforms, utils
 from torchinfo import summary
+import hiddenlayer as hl
 import wandb
 
 from tqdm.auto import tqdm
@@ -49,13 +50,16 @@ def train(loader, val_loader):
 
     print(summary(model, (args.batch_size, 3, args.size, args.size)))
     print(model) #vanilla pytorch summary
+    hl_graph = hl.build_graph(model, torch.zeros([1, 3, 256, 256]).to(device), 
+                              transforms=[hl.transforms.Fold("Relu > Conv3x3 > Relu > Conv1x1", "ResBlock"), hl.transforms.FoldDuplicates()]) #pretty print visualization of model
+    hl_graph.save("./model_graph", format="pdf")
 
     loader, val_loader = tqdm(loader), tqdm(val_loader)
 
     criterion = nn.MSELoss()
 
     latent_loss_weight = 0.30
-    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 5)
+    latent_loss_beta_list = torch.linspace(0, latent_loss_weight, 5).tolist()
 
     sample_size = 20
 
@@ -82,14 +86,15 @@ def train(loader, val_loader):
                 if beta_index > 4: #5-1
                     beta_index = latent_loss_beta_list[-1]
 
-                loss = recon_loss + latent_loss_beta_list[beta_index] * latent_loss
+                loss = recon_loss + latent_loss_beta_list[int(beta_index)] * latent_loss
 
                 scaler.scale(loss).backward() #added loss to backprop
 
                 if scheduler is not None:
                     scheduler.step()
 
-                #torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
+                scaler.unscale_(optimizer) #unscaling grads
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradclip) #grad clipping
 
                 scaler.step(optimizer)
 
@@ -110,7 +115,7 @@ def train(loader, val_loader):
                         "lr": lr})
 
                 #Performing Validation and loggign out images
-                if epoch > 0 and epoch % 15 == 0:   #i % 100 == 0
+                if epoch > 0 and epoch % 9 == 0:   #i % 100 == 0
                     model.eval()
                     model = model.to(device)
                     #--------------VALIDATION------------------

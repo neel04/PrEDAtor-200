@@ -1,0 +1,7 @@
+wandb/
+__pycache__/
+*.log
+./*log
+cloudflared*
+*.pth
+*.ckpt

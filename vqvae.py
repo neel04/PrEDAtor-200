@@ -79,7 +79,7 @@ class ResBlock(nn.Module):
             nn.ReLU(), #inplace=True
             nn.Conv2d(in_channel, channel, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channel, in_channel, 1),
+            nn.Conv2d(channel, in_channel, 1)
         )
 
     def forward(self, input):
